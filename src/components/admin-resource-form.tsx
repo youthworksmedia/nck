@@ -1,0 +1,279 @@
+"use client";
+
+import { Save } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
+
+import { AdminAssetPicker } from "@/components/admin-asset-picker";
+import { WysiwygEditor } from "@/components/wysiwyg-editor";
+import type { ResourceLibraryFile } from "@/lib/resource-assets";
+import { getTodayISO } from "@/lib/time";
+
+type Props = {
+  files: ResourceLibraryFile[];
+  initialYearCycle: "Year A" | "Year B" | "Year C";
+  initialTerm: "Term 1" | "Term 2" | "Term 3" | "Term 4";
+};
+
+export function AdminResourceForm({ files, initialYearCycle, initialTerm }: Props) {
+  const router = useRouter();
+  const today = getTodayISO();
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [scripture, setScripture] = useState("");
+  const [yearCycle, setYearCycle] = useState<"Year A" | "Year B" | "Year C">(initialYearCycle);
+  const [term, setTerm] = useState<"Term 1" | "Term 2" | "Term 3" | "Term 4">(initialTerm);
+  const [publishDate, setPublishDate] = useState(today);
+  const [expiryDate, setExpiryDate] = useState("");
+  const [status, setStatus] = useState<"open" | "closed">("open");
+  const [existingMusicPath, setExistingMusicPath] = useState("");
+  const [existingWorksheetPath, setExistingWorksheetPath] = useState("");
+  const [existingManualPath, setExistingManualPath] = useState("");
+  const [musicFile, setMusicFile] = useState<File | null>(null);
+  const [worksheetFile, setWorksheetFile] = useState<File | null>(null);
+  const [manualFile, setManualFile] = useState<File | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    setYearCycle(initialYearCycle);
+  }, [initialYearCycle]);
+
+  useEffect(() => {
+    setTerm(initialTerm);
+  }, [initialTerm]);
+
+  useEffect(() => {
+    const freshToday = getTodayISO();
+    setPublishDate(freshToday);
+    setExpiryDate("");
+    setStatus("open");
+    setExistingMusicPath("");
+    setExistingWorksheetPath("");
+    setExistingManualPath("");
+    setMusicFile(null);
+    setWorksheetFile(null);
+    setManualFile(null);
+  }, [initialYearCycle, initialTerm]);
+
+  return (
+    <form
+      className="invite-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        setMessage(null);
+        const form = event.currentTarget;
+        const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+        const shouldAddMore = submitter?.value === "add-more";
+
+        startTransition(async () => {
+          const formData = new FormData();
+          formData.set("title", title);
+          formData.set("description", description);
+          formData.set("scripture", scripture);
+          formData.set("yearCycle", yearCycle);
+          formData.set("term", term);
+          formData.set("publishDate", publishDate);
+          formData.set("expiryDate", expiryDate);
+          formData.set("status", status);
+          formData.set("existingMusicPath", existingMusicPath);
+          formData.set("existingWorksheetPath", existingWorksheetPath);
+          formData.set("existingManualPath", existingManualPath);
+
+          if (musicFile) formData.set("musicFile", musicFile);
+          if (worksheetFile) formData.set("worksheetFile", worksheetFile);
+          if (manualFile) formData.set("manualFile", manualFile);
+
+          const response = await fetch("/api/admin/resources", {
+            method: "POST",
+            body: formData
+          });
+
+          const payload = await response.json();
+          setMessage(payload.message);
+
+          if (!response.ok) {
+            return;
+          }
+
+          setTitle("");
+          setDescription("");
+          setScripture("");
+          setYearCycle(initialYearCycle);
+          setTerm(initialTerm);
+          setPublishDate(today);
+          setExpiryDate("");
+          setStatus("open");
+          setExistingMusicPath("");
+          setExistingWorksheetPath("");
+          setExistingManualPath("");
+          setMusicFile(null);
+          setWorksheetFile(null);
+          setManualFile(null);
+          form.reset();
+          if (shouldAddMore) {
+            router.push(
+              `/content?tab=add&year=${encodeURIComponent(yearCycle)}&term=${encodeURIComponent(term)}`
+            );
+          } else {
+            router.push(`/content?year=${encodeURIComponent(yearCycle)}`);
+          }
+          router.refresh();
+        });
+      }}
+    >
+      <div className="admin-title-row">
+        <label className="admin-field-label" htmlFor="resource-title">
+          Title *
+        </label>
+        <input
+          id="resource-title"
+          type="text"
+          placeholder="Title"
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          required
+        />
+      </div>
+      <div className="three-up admin-form-grid">
+        <div>
+          <label className="admin-field-label" htmlFor="resource-scripture">
+            Scripture *
+          </label>
+          <input
+            id="resource-scripture"
+            type="text"
+            placeholder="John 3:16-21"
+            value={scripture}
+            onChange={(event) => setScripture(event.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label className="admin-field-label" htmlFor="resource-year-cycle">
+            Year *
+          </label>
+          <select
+            id="resource-year-cycle"
+            value={yearCycle}
+            onChange={(event) => setYearCycle(event.target.value as "Year A" | "Year B" | "Year C")}
+            required
+          >
+            <option value="Year A">Year A</option>
+            <option value="Year B">Year B</option>
+            <option value="Year C">Year C</option>
+          </select>
+        </div>
+        <div>
+          <label className="admin-field-label" htmlFor="resource-term">
+            Term *
+          </label>
+          <select
+            id="resource-term"
+            value={term}
+            onChange={(event) =>
+              setTerm(event.target.value as "Term 1" | "Term 2" | "Term 3" | "Term 4")
+            }
+            required
+          >
+            <option value="Term 1">Term 1</option>
+            <option value="Term 2">Term 2</option>
+            <option value="Term 3">Term 3</option>
+            <option value="Term 4">Term 4</option>
+          </select>
+        </div>
+        <div>
+          <label className="admin-field-label" htmlFor="resource-publish-date">
+            Publish date *
+          </label>
+          <input
+            id="resource-publish-date"
+            type="date"
+            value={publishDate}
+            onChange={(event) => setPublishDate(event.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label className="admin-field-label" htmlFor="resource-expiry-date">
+            Expiry date
+          </label>
+          <input
+            id="resource-expiry-date"
+            type="date"
+            value={expiryDate}
+            onChange={(event) => setExpiryDate(event.target.value)}
+          />
+        </div>
+      </div>
+      <div className="three-up admin-form-grid">
+        <div>
+          <label className="admin-field-label" htmlFor="resource-status">
+            Status *
+          </label>
+          <select
+            id="resource-status"
+            value={status}
+            onChange={(event) => setStatus(event.target.value as "open" | "closed")}
+          >
+            <option value="open">Open</option>
+            <option value="closed">Closed</option>
+          </select>
+        </div>
+      </div>
+      <div className="three-up admin-form-grid">
+        <AdminAssetPicker
+          kind="manual"
+          files={files}
+          selectedPath={existingManualPath}
+          onSelectPath={setExistingManualPath}
+          uploadFile={manualFile}
+          onUploadFile={setManualFile}
+        />
+        <AdminAssetPicker
+          kind="worksheet"
+          files={files}
+          selectedPath={existingWorksheetPath}
+          onSelectPath={setExistingWorksheetPath}
+          uploadFile={worksheetFile}
+          onUploadFile={setWorksheetFile}
+        />
+        <AdminAssetPicker
+          kind="music"
+          files={files}
+          selectedPath={existingMusicPath}
+          onSelectPath={setExistingMusicPath}
+          uploadFile={musicFile}
+          onUploadFile={setMusicFile}
+        />
+      </div>
+      <WysiwygEditor
+        label="Content *"
+        value={description}
+        onChange={setDescription}
+        placeholder="Write the lesson content here."
+      />
+      <div className="admin-submit-row">
+        <button
+          type="submit"
+          value="save"
+          className="button button-primary admin-submit-button"
+          disabled={isPending}
+        >
+          <Save size={16} />
+          <span>{isPending ? "Saving..." : "Add lesson"}</span>
+        </button>
+        <button
+          type="submit"
+          value="add-more"
+          className="button admin-submit-button"
+          disabled={isPending}
+        >
+          <Save size={16} />
+          <span>{isPending ? "Saving..." : "Save and add more"}</span>
+        </button>
+      </div>
+      {message ? <p className="form-status">{message}</p> : null}
+    </form>
+  );
+}

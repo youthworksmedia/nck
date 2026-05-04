@@ -1,0 +1,511 @@
+.page {
+  min-height: 100vh;
+  padding: 0.9rem 0 2rem;
+  background:
+    radial-gradient(circle at top left, rgba(255, 214, 128, 0.34), transparent 24%),
+    radial-gradient(circle at 88% 12%, rgba(107, 184, 255, 0.24), transparent 20%),
+    linear-gradient(180deg, #0d2948 0%, #17466f 38%, #7cbbe9 100%);
+  color: #f5f8fc;
+}
+
+.compactShell,
+.shell {
+  width: min(980px, calc(100% - 1rem));
+  margin: 0 auto;
+}
+
+.compactHero,
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: 1rem;
+  border-radius: 26px;
+  background:
+    linear-gradient(148deg, rgba(5, 18, 35, 0.92), rgba(18, 71, 118, 0.8)),
+    linear-gradient(45deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 26px 70px rgba(3, 17, 36, 0.26);
+}
+
+.compactHeroTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin-bottom: 0.85rem;
+}
+
+.eyebrow {
+  display: inline-flex;
+  margin-bottom: 0.45rem;
+  padding: 0.28rem 0.62rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.compactHero h1,
+.hero h1 {
+  margin: 0;
+  font-size: clamp(1.7rem, 5vw, 2.8rem);
+  line-height: 0.98;
+}
+
+.hero p,
+.compactHero p {
+  max-width: 40rem;
+  color: rgba(245, 248, 252, 0.82);
+}
+
+.compactToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.8rem;
+}
+
+.compactSettings,
+.inlineActions,
+.actions,
+.placeMetaRow,
+.placeActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.compactSelect,
+.surfaceSelect {
+  min-height: 2.45rem;
+  padding: 0.62rem 0.82rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(244, 247, 251, 0.14);
+  color: #f5f8fc;
+}
+
+.compactList,
+.favoritesList,
+.providerList,
+.dailyList,
+.settingsList,
+.expandedProviders {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 0.9rem;
+}
+
+.placeRow,
+.providerCard,
+.forecastRow,
+.favoriteRow,
+.settingRow,
+.card,
+.providerDetailCard {
+  padding: 0.95rem;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #17324f;
+  border: 1px solid rgba(15, 54, 91, 0.08);
+  box-shadow: 0 18px 42px rgba(7, 25, 50, 0.14);
+}
+
+.placeSummary {
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.placeMain,
+.favoriteHeader,
+.forecastHeader,
+.providerHeader,
+.expandedHeader,
+.providerDetailHeader,
+.chartHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.placeTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.titleLine {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.placeIcon {
+  display: inline-grid;
+  place-items: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #edf6ff, #d9ebff);
+  font-size: 1.35rem;
+}
+
+.placeNow {
+  text-align: right;
+}
+
+.placeAside {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.placeNow strong {
+  display: block;
+  font-size: 1.5rem;
+}
+
+.expandArrow {
+  display: inline-grid;
+  place-items: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #edf6ff, #d9ebff);
+  color: #1b5d98;
+  transition: transform 180ms ease, background 180ms ease;
+  flex-shrink: 0;
+}
+
+.expandArrowOpen {
+  transform: rotate(180deg);
+  background: linear-gradient(180deg, #d8f1ff, #b7e2ff);
+}
+
+.placeNow span,
+.compactMeta,
+.dayLabel,
+.subtle,
+.chartValue,
+.forecastMiniCard span,
+.dataTile small,
+.overviewTile small {
+  color: #5c7591;
+  font-size: 0.83rem;
+}
+
+.overviewGrid,
+.providerStatGrid,
+.trustRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+}
+
+.overviewTile,
+.dataTile,
+.statPill,
+.trustPill,
+.forecastMiniCard,
+.confidenceBadge,
+.miniChartCard,
+.chartCard {
+  padding: 0.75rem;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #f8fbff, #eaf3ff);
+}
+
+.overviewTile span,
+.dataTile span,
+.statPill span,
+.trustPill span,
+.confidenceBadge span {
+  display: block;
+  font-size: 0.76rem;
+  color: #4c6988;
+}
+
+.overviewTile strong,
+.dataTile strong,
+.statPill strong,
+.trustPill strong,
+.confidenceBadge strong,
+.forecastMiniCard strong {
+  display: block;
+  font-size: 1.02rem;
+}
+
+.miniChartRow,
+.insightGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin-top: 0.75rem;
+}
+
+.miniChartHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.tempChart {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.4rem;
+  align-items: end;
+  min-height: 130px;
+}
+
+.tempBarWrap {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
+}
+
+.tempBarTrack {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  width: 100%;
+  min-height: 96px;
+  border-radius: 14px;
+  background: rgba(26, 83, 140, 0.08);
+}
+
+.tempBar {
+  width: 100%;
+  max-width: 28px;
+  border-radius: 14px 14px 8px 8px;
+  background: linear-gradient(180deg, #ffd36b, #ff8e4b);
+}
+
+.rainChart {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.rainBarRow {
+  display: grid;
+  grid-template-columns: 40px 1fr 54px;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.rainBarTrack {
+  height: 0.65rem;
+  border-radius: 999px;
+  background: rgba(26, 83, 140, 0.08);
+  overflow: hidden;
+}
+
+.rainBar {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #58b6ff, #176dd8);
+}
+
+.expandedPanel {
+  margin-top: 0.85rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(18, 60, 102, 0.1);
+}
+
+.forecastStrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+}
+
+.placeActions {
+  justify-content: flex-end;
+  margin-top: 0.7rem;
+}
+
+.searchRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.65rem;
+}
+
+.searchInput {
+  width: 100%;
+  min-height: 2.7rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(244, 247, 251, 0.12);
+  color: #f5f8fc;
+}
+
+.searchInput::placeholder {
+  color: rgba(245, 248, 252, 0.62);
+}
+
+.searchResults {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+}
+
+.searchResult {
+  padding: 0.75rem 0.85rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f5f8fc;
+  text-align: left;
+}
+
+.saveButton,
+.searchButton,
+.geoButton,
+.actionPrimary,
+.actionSecondary,
+.inlineLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.45rem;
+  padding: 0.7rem 0.95rem;
+  border-radius: 999px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.saveButton,
+.searchButton,
+.actionPrimary {
+  background: linear-gradient(135deg, #ffcd67, #ff8b4f);
+  color: #17324f;
+  border: 0;
+  cursor: pointer;
+}
+
+.geoButton,
+.actionSecondary {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #f5f8fc;
+}
+
+.inlineLink {
+  background: #163a63;
+  color: #f5f8fc;
+  border: 0;
+}
+
+.settingsIconLink {
+  display: inline-grid;
+  place-items: center;
+  width: 2.55rem;
+  height: 2.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #f5f8fc;
+}
+
+.status {
+  margin: 0;
+  color: rgba(245, 248, 252, 0.84);
+  font-size: 0.9rem;
+}
+
+.trustBadge,
+.confidenceInline {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.7rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.toneHigh {
+  background: rgba(31, 167, 109, 0.16);
+  color: #11754c;
+}
+
+.toneGood {
+  background: rgba(58, 132, 245, 0.16);
+  color: #0f5fbb;
+}
+
+.toneMid {
+  background: rgba(255, 179, 71, 0.2);
+  color: #a46300;
+}
+
+.toneLow {
+  background: rgba(228, 83, 83, 0.16);
+  color: #aa2e2e;
+}
+
+.toneNeutral {
+  background: rgba(109, 127, 151, 0.16);
+  color: #53657d;
+}
+
+.grid,
+.heroMeta,
+.chip,
+.searchStack,
+.searchCard,
+.miniLabel,
+.toggleRow,
+.settingsGrid,
+.fullWidth,
+.sectionTitle {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .searchRow,
+  .compactToolbar,
+  .miniChartRow,
+  .insightGrid,
+  .overviewGrid,
+  .providerStatGrid,
+  .trustRow {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .compactHeroTop,
+  .placeMain,
+  .expandedHeader,
+  .providerDetailHeader,
+  .chartHead {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .placeNow {
+    text-align: left;
+  }
+
+  .placeAside {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .forecastStrip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

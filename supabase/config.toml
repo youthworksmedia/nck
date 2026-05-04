@@ -1,0 +1,7 @@
+project_id = "xguurztxhdrgweavnmiz"
+
+[functions.log-forecasts]
+verify_jwt = false
+
+[functions.log-observations]
+verify_jwt = false
