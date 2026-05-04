@@ -40,7 +40,7 @@ For local emulator development:
 
 Notes:
 
-- `cap:sync:dev` points the Android WebView at `http://10.0.2.2:3000/weather`, which is the Android emulator alias for your host machine.
+- `cap:sync:dev` points the Android WebView at `http://10.0.2.2:3001/weather`, which is the Android emulator alias for your host machine.
 - Device geolocation and settings persistence use Capacitor plugins with web fallbacks.
 - Cleartext localhost traffic is enabled for emulator development via [android/app/src/main/res/xml/network_security_config.xml](/Users/robert/Documents/Playground 2/mollersphere/android/app/src/main/res/xml/network_security_config.xml).
 
