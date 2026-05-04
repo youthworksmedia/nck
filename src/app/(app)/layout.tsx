@@ -1,16 +1,9 @@
-import { SiteFooter } from "@/components/site-footer";
-import { SiteHeader } from "@/components/site-header";
+import { MemberShell } from "@/components/member-shell";
 
 export default function AppLayout({
   children
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <>
-      <SiteHeader />
-      {children}
-      <SiteFooter />
-    </>
-  );
+  return <MemberShell>{children}</MemberShell>;
 }

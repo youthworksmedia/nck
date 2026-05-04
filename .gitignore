@@ -9,3 +9,4 @@ dist
 *.tsbuildinfo
 private-uploads/
 .vercel
+.DS_Store
