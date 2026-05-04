@@ -8,3 +8,4 @@ dist
 *.log
 *.tsbuildinfo
 private-uploads/
+.vercel

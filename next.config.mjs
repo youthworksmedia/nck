@@ -1,9 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   devIndicators: false,
-  experimental: {
-    typedRoutes: true
-  },
+  typedRoutes: true,
   async headers() {
     return [
       {
