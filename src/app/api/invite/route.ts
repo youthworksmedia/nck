@@ -2,17 +2,13 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { ensureDemoOwnerBootstrap } from "@/lib/bootstrap";
-import { getPlanByTier } from "@/lib/plans";
-import { isStrongPassword, passwordRequirementText } from "@/lib/password";
-import { hasSupabaseEnv } from "@/lib/public-env";
+import { hasSupabaseEnv, publicEnv } from "@/lib/public-env";
 import { getCurrentUser, isCurrentUserOwner } from "@/lib/portal";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const schema = z.object({
-  name: z.string().trim().min(2),
-  email: z.string().email(),
-  password: z.string().refine(isStrongPassword, passwordRequirementText)
+  email: z.string().trim().email()
 });
 
 export async function POST(request: Request) {
@@ -24,7 +20,7 @@ export async function POST(request: Request) {
   if (!payload.success) {
     return NextResponse.json(
       {
-        message: `Enter a name, a valid email address, and a valid password. ${passwordRequirementText}`
+        message: "Enter a valid email address."
       },
       { status: 400 }
     );
@@ -32,7 +28,7 @@ export async function POST(request: Request) {
 
   if (!supabase || !hasSupabaseEnv) {
     return NextResponse.json({
-      message: `Team member created for ${memberEmail}.`
+      message: `Invitation prepared for ${memberEmail}.`
     });
   }
 
@@ -85,74 +81,24 @@ export async function POST(request: Request) {
     );
   }
 
-  const { data: subscription } = await adminSupabase
-    .from("subscriptions")
-    .select("tier")
+  const { data: existingMember } = await adminSupabase
+    .from("organization_members")
+    .select("id")
     .eq("organization_id", organizationId)
+    .eq("invitation_email", memberEmail)
     .limit(1)
     .maybeSingle();
 
-  const plan = getPlanByTier(subscription?.tier ?? "");
-
-  if (!plan) {
-    return NextResponse.json(
-      { message: "The current membership plan could not be verified." },
-      { status: 400 }
-    );
-  }
-
-  const { data: createdUser, error: createUserError } = await adminSupabase.auth.admin.createUser(
-    {
-      email: memberEmail,
-      password: payload.data.password,
-      email_confirm: true,
-      user_metadata: {
-        full_name: payload.data.name
-      }
-    }
-  );
-
-  let teamUserId = createdUser?.user?.id ?? null;
-
-  if (createUserError || !teamUserId) {
-    const isExistingUserError = createUserError?.message
-      ?.toLowerCase()
-      .includes("already been registered");
-
-    if (!isExistingUserError) {
-      return NextResponse.json(
-        { message: createUserError?.message ?? "Unable to create team member." },
-        { status: 400 }
-      );
-    }
-
-    const { data: existingUsers, error: listUsersError } =
-      await adminSupabase.auth.admin.listUsers();
-
-    if (listUsersError) {
-      return NextResponse.json({ message: listUsersError.message }, { status: 400 });
-    }
-
-    teamUserId =
-      existingUsers.users.find(
-        (candidate) => candidate.email?.toLowerCase() === memberEmail
-      )?.id ?? null;
-
-    if (!teamUserId) {
-      return NextResponse.json(
-        {
-          message:
-            "This email is already registered, but it could not be linked automatically. Ask that user to log in once, then try again."
-        },
-        { status: 400 }
-      );
-    }
+  if (existingMember) {
+    return NextResponse.json({
+      message: `${memberEmail} has already been invited to this account.`
+    });
   }
 
   const { error } = await adminSupabase.from("organization_members").insert({
     organization_id: organizationId,
-    user_id: teamUserId,
-    display_name: payload.data.name,
+    user_id: null,
+    display_name: memberEmail.split("@")[0],
     invitation_email: memberEmail,
     role: "member"
   });
@@ -160,25 +106,43 @@ export async function POST(request: Request) {
   if (error?.message?.includes("'display_name' column")) {
     const { error: retryError } = await adminSupabase.from("organization_members").insert({
       organization_id: organizationId,
-      user_id: teamUserId,
+      user_id: null,
       invitation_email: memberEmail,
       role: "member"
     });
 
     if (retryError) {
-      if (createdUser?.user?.id) {
-        await adminSupabase.auth.admin.deleteUser(createdUser.user.id);
-      }
       return NextResponse.json({ message: retryError.message }, { status: 400 });
     }
   } else if (error) {
-    if (createdUser?.user?.id) {
-      await adminSupabase.auth.admin.deleteUser(createdUser.user.id);
-    }
     return NextResponse.json({ message: error.message }, { status: 400 });
   }
 
+  const { error: inviteError } = await adminSupabase.auth.admin.inviteUserByEmail(
+    memberEmail,
+    {
+      redirectTo: `${publicEnv.siteUrl}/auth/callback?next=/reset-password`
+    }
+  );
+
+  if (inviteError) {
+    const alreadyRegistered = inviteError.message.toLowerCase().includes("already");
+
+    if (!alreadyRegistered) {
+      return NextResponse.json(
+        {
+          message: `The team member was added, but the invite email could not be sent: ${inviteError.message}`
+        },
+        { status: 202 }
+      );
+    }
+
+    return NextResponse.json({
+      message: `${memberEmail} was added. This email already has a login, so they can sign in or use Missing password.`
+    });
+  }
+
   return NextResponse.json({
-    message: `Team member created for ${memberEmail}.`
+    message: `Invitation sent to ${memberEmail}.`
   });
 }

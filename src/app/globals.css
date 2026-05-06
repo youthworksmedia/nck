@@ -3142,6 +3142,76 @@ button {
   border-radius: 8px;
 }
 
+.admin-settings-layout {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.admin-settings-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.admin-settings-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.55rem;
+  padding: 0.62rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid rgba(28, 57, 94, 0.12);
+  background: white;
+  color: #425168;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.admin-settings-tab-active {
+  background: #eef8fa;
+  border-color: rgba(36, 116, 136, 0.24);
+  color: #0f4d66;
+}
+
+.admin-settings-form {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid rgba(28, 57, 94, 0.1);
+  border-radius: 8px;
+  background: #f9fbfe;
+}
+
+.admin-settings-form h2 {
+  margin: 0 0 0.25rem;
+}
+
+.admin-settings-form p {
+  margin: 0;
+  color: #657386;
+}
+
+.admin-settings-form label {
+  color: #17263b;
+  font-weight: 850;
+}
+
+.admin-settings-form input,
+.admin-settings-form textarea {
+  width: 100%;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  background: white;
+  padding: 0.95rem 1rem;
+  font: inherit;
+}
+
+.admin-settings-form textarea {
+  min-height: 16rem;
+  resize: vertical;
+  line-height: 1.55;
+}
+
 @media (max-width: 1020px) {
   .member-shell {
     grid-template-columns: 1fr;

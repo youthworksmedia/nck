@@ -240,6 +240,13 @@ create table if not exists public.lesson_plans (
   updated_at timestamptz not null default timezone('utc', now())
 );
 
+create table if not exists public.email_templates (
+  template_key text primary key,
+  subject text not null,
+  body text not null,
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
 create table if not exists public.curriculum_term_notes (
   id uuid primary key default gen_random_uuid(),
   year_cycle text not null,

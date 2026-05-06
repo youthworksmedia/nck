@@ -9,10 +9,12 @@ import {
   FolderOpen,
   LayoutDashboard,
   Plus,
+  Settings,
   ShieldCheck,
   Users
 } from "lucide-react";
 
+import { AdminEmailSettingsForm } from "@/components/admin-email-settings-form";
 import { AdminFileLibrary } from "@/components/admin-file-library";
 import { AdminResourceForm } from "@/components/admin-resource-form";
 import { AdminResourceList } from "@/components/admin-resource-list";
@@ -27,6 +29,7 @@ import {
   getSuperAdminEmails,
   isCurrentUserSuperAdmin
 } from "@/lib/admin-access";
+import { getEmailTemplates } from "@/lib/email-settings";
 import { buildPrivateMetadata } from "@/lib/metadata";
 import { plans } from "@/lib/plans";
 import { getCurrentUser } from "@/lib/portal";
@@ -52,7 +55,14 @@ const years = ["Year A", "Year B", "Year C"] as const;
 const terms = ["Term 1", "Term 2", "Term 3", "Term 4"] as const;
 
 function getSection(value?: string) {
-  if (value === "content" || value === "accounts" || value === "transactions" || value === "media" || value === "admins") {
+  if (
+    value === "content" ||
+    value === "accounts" ||
+    value === "transactions" ||
+    value === "media" ||
+    value === "admins" ||
+    value === "settings"
+  ) {
     return value;
   }
 
@@ -107,13 +117,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const activeYear = getYear(params.year);
   const activeTerm = getTerm(params.term);
   const activeTab = params.tab === "add" ? "add" : "library";
-  const [resources, files, termNotes, accountHolders, orders, admins] = await Promise.all([
+  const [resources, files, termNotes, accountHolders, orders, admins, emailTemplates] = await Promise.all([
     getAdminResources(),
     listStoredResourceFiles(),
     getAdminTermNotes(),
     getAccountHolderSummaries(),
     getPurchaseOrders(),
-    getSuperAdminEmails()
+    getSuperAdminEmails(),
+    getEmailTemplates()
   ]);
   const selectedLessons = resources.filter(
     (resource) => (resource.yearCycle ?? "Year A") === activeYear && (resource.term ?? "Term 1") === activeTerm
@@ -192,6 +203,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           >
             <ShieldCheck size={18} />
             <span>Admin accounts</span>
+          </Link>
+          <Link
+            href={adminHref({ section: "settings" })}
+            className={`admin-console-link ${activeSection === "settings" ? "admin-console-link-active" : ""}`}
+          >
+            <Settings size={18} />
+            <span>Settings</span>
           </Link>
         </nav>
       </aside>
@@ -473,6 +491,21 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   ))}
                 </tbody>
               </table>
+            </section>
+          ) : null}
+
+          {activeSection === "settings" ? (
+            <section className="panel admin-console-card">
+              <div className="section-head">
+                <div>
+                  <h1>Settings</h1>
+                  <p>Update global settings for New Creation Kids.</p>
+                </div>
+              </div>
+              <div className="admin-top-tabs" role="tablist" aria-label="Settings tabs">
+                <span className="admin-top-tab admin-top-tab-active">Emails</span>
+              </div>
+              <AdminEmailSettingsForm templates={emailTemplates} />
             </section>
           ) : null}
         </main>

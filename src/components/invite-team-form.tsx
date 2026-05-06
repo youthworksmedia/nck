@@ -4,18 +4,13 @@ import { Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { PasswordInput } from "@/components/password-input";
-import { passwordRequirementText } from "@/lib/password";
-
 export function InviteTeamForm({
   remainingAdditionalTeamMembers
 }: {
   remainingAdditionalTeamMembers: number;
 }) {
   const router = useRouter();
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -27,9 +22,7 @@ export function InviteTeamForm({
         className="button button-primary account-team-launch-button"
         onClick={() => {
           setStatus(null);
-          setName("");
           setEmail("");
-          setPassword("");
           setIsOpen(true);
         }}
       >
@@ -48,8 +41,8 @@ export function InviteTeamForm({
           >
             <div className="modal-head">
               <div>
-                <h3 id="invite-team-member-modal">Add team member</h3>
-                <p>Invite as many team members as your ministry needs.</p>
+                <h3 id="invite-team-member-modal">Invite team member</h3>
+                <p>Enter an email address and we will send an invitation link.</p>
               </div>
               <button
                 type="button"
@@ -73,31 +66,20 @@ export function InviteTeamForm({
                     headers: {
                       "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({ name, email, password })
+                    body: JSON.stringify({ email })
                   });
 
                   const payload = await response.json();
                   setStatus(payload.message);
 
                   if (response.ok) {
-                    setName("");
                     setEmail("");
-                    setPassword("");
                     setIsOpen(false);
                     router.refresh();
                   }
                 });
               }}
             >
-              <input
-                id="invite-name"
-                type="text"
-                className="invite-name-input"
-                placeholder="Name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                required
-              />
               <input
                 id="invite-email"
                 type="email"
@@ -107,17 +89,6 @@ export function InviteTeamForm({
                 onChange={(event) => setEmail(event.target.value)}
                 required
               />
-              <PasswordInput
-                id="invite-password"
-                placeholder="Password"
-                value={password}
-                onChange={setPassword}
-                minLength={8}
-                required
-              />
-              <p className="form-status form-status-small">
-                {passwordRequirementText}
-              </p>
               <div className="button-row">
                 <button
                   type="button"
@@ -127,7 +98,7 @@ export function InviteTeamForm({
                   Cancel
                 </button>
                 <button className="button button-primary" type="submit" disabled={isPending}>
-                  {isPending ? "Adding..." : "Add team member"}
+                  {isPending ? "Sending..." : "Send invite"}
                 </button>
               </div>
               {status ? <p className="form-status">{status}</p> : null}
