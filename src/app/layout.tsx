@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { ConditionalChatHelper } from "@/components/conditional-chat-helper";
 import "@/app/globals.css";
 import { metadataBase, siteDescription, siteName } from "@/lib/metadata";
 
@@ -48,7 +47,6 @@ export default function RootLayout({
     <html lang="en">
       <body>
         {children}
-        <ConditionalChatHelper />
       </body>
     </html>
   );
