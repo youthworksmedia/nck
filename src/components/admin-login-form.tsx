@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { PasswordInput } from "@/components/password-input";
@@ -55,6 +56,9 @@ export function AdminLoginForm() {
         placeholder="Password"
         required
       />
+      <Link href="/missing-password" className="login-forgot-link">
+        Missing password?
+      </Link>
       <button type="submit" className="button button-primary" disabled={isPending}>
         {isPending ? "Signing in..." : "Sign in"}
       </button>

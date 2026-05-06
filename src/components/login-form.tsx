@@ -1,6 +1,7 @@
 "use client";
 
 import { LogIn } from "lucide-react";
+import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { PasswordInput } from "@/components/password-input";
@@ -67,6 +68,9 @@ export function LoginForm() {
           minLength={7}
           required
         />
+        <Link href="/missing-password" className="login-forgot-link">
+          Missing password?
+        </Link>
       </div>
       <button type="submit" className="button button-primary login-submit-button" disabled={isPending}>
         <LogIn size={16} />

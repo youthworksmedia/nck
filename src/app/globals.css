@@ -3548,6 +3548,19 @@ button {
   font-weight: 800;
 }
 
+.login-forgot-link {
+  justify-self: end;
+  color: #164f87;
+  font-size: 0.94rem;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+}
+
+.login-forgot-link:hover {
+  color: #0f7c78;
+}
+
 .login-submit-button {
   justify-self: center;
   min-width: 12rem;
