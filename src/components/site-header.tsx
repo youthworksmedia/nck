@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { LayoutDashboard } from "lucide-react";
 
 import { MobileNavMenu } from "@/components/mobile-nav-menu";
@@ -18,14 +17,8 @@ export async function SiteHeader() {
     <header className="site-shell">
       <div className="nav-card">
         <Link href="/" className="brand-mark">
-          <Image
-            src="/gigk-logo.png"
-            alt="New Creation Kids"
-            width={240}
-            height={120}
-            className="brand-logo"
-            priority
-          />
+          <span className="brand-placeholder-logo" aria-hidden="true">NCK</span>
+          <span className="brand-placeholder-text">New Creation Kids</span>
         </Link>
         <nav className="nav-links" aria-label="Primary">
           {navItems.map((item, index) => (

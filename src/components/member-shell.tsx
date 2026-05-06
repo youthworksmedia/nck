@@ -49,9 +49,9 @@ export async function MemberShell({ children }: { children: React.ReactNode }) {
             );
           })}
           {isSuperAdmin ? (
-            <Link href="/content" className="member-nav-link member-nav-link-admin">
+            <Link href="/admin" className="member-nav-link member-nav-link-admin">
               <ShieldCheck size={18} />
-              <span>Admin Content</span>
+              <span>Admin</span>
             </Link>
           ) : null}
         </nav>

@@ -70,6 +70,7 @@ export async function SuperAdminContentView({
             resources={resources}
             files={files}
             activeYear={activeYear}
+            activeTerm={activeTerm}
             termNotes={termNotes}
           />
         </section>

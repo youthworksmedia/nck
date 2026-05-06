@@ -131,21 +131,33 @@ button {
 }
 
 .brand-mark {
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  gap: 0.7rem;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
   display: inline-flex;
   align-items: center;
   position: relative;
   z-index: 2;
-  margin: -15.3rem 0 -20.2rem;
+  margin: 0;
+  color: white;
 }
 
-.brand-logo {
-  width: auto;
-  height: 11rem;
-  filter: drop-shadow(0 18px 28px rgba(20, 33, 54, 0.32));
+.brand-placeholder-logo {
+  width: 3rem;
+  height: 3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.brand-placeholder-text {
+  white-space: nowrap;
 }
 
 .nav-links {
@@ -2933,9 +2945,236 @@ button {
   box-shadow: 0 18px 34px rgba(23, 49, 78, 0.08);
 }
 
+.admin-console {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  background: #f6f8fb;
+  color: #1e293b;
+}
+
+.admin-console-sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  padding: 1.1rem;
+  border-right: 1px solid rgba(28, 57, 94, 0.11);
+  background: #ffffff;
+  overflow-y: auto;
+}
+
+.admin-console-brand {
+  flex: 0 0 auto;
+}
+
+.admin-console-nav {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.admin-console-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.75rem;
+  padding: 0.68rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  color: #35445a;
+  font-weight: 800;
+}
+
+.admin-console-link:hover,
+.admin-console-link-active {
+  color: #123d72;
+  border-color: rgba(36, 110, 139, 0.16);
+  background: rgba(36, 110, 139, 0.08);
+}
+
+.admin-console-link svg {
+  color: #247488;
+}
+
+.admin-console-nav-group {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.admin-console-curriculum-tree {
+  display: grid;
+  gap: 0.25rem;
+  margin-left: 2.15rem;
+  padding-left: 0.7rem;
+  border-left: 1px solid rgba(28, 57, 94, 0.12);
+}
+
+.admin-console-curriculum-tree details {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.admin-console-curriculum-tree summary {
+  list-style: none;
+  padding: 0.38rem 0.3rem;
+  color: #516176;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 850;
+}
+
+.admin-console-curriculum-tree summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-console-curriculum-tree a {
+  display: block;
+  margin: 0.1rem 0 0.1rem 0.45rem;
+  padding: 0.42rem 0.55rem;
+  border-radius: 6px;
+  color: #637083;
+  font-size: 0.86rem;
+  font-weight: 750;
+}
+
+.admin-console-curriculum-tree a:hover,
+.admin-console-curriculum-tree a.is-active {
+  background: #eef8fa;
+  color: #0f4d66;
+}
+
+.admin-console-workspace {
+  min-width: 0;
+}
+
+.admin-console-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  min-height: 4.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1.5rem;
+  border-bottom: 1px solid rgba(28, 57, 94, 0.1);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px);
+}
+
+.admin-console-topbar strong {
+  display: block;
+  color: #17263b;
+}
+
+.admin-console-main {
+  width: min(1240px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 1.35rem 0 2.5rem;
+}
+
+.admin-console-head {
+  margin-bottom: 1rem;
+}
+
+.admin-console-card {
+  border-radius: 8px;
+  border: 1px solid rgba(28, 57, 94, 0.1);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 34px rgba(23, 49, 78, 0.08);
+}
+
+.admin-console-card h1,
+.admin-console-card h2 {
+  color: #17263b;
+}
+
+.admin-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.admin-metric-grid article {
+  min-height: 8.4rem;
+  display: grid;
+  align-content: space-between;
+  gap: 0.55rem;
+  padding: 1rem;
+  border: 1px solid rgba(28, 57, 94, 0.1);
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 16px 30px rgba(23, 49, 78, 0.07);
+}
+
+.admin-metric-grid span {
+  color: #5c6b80;
+  font-size: 0.84rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.admin-metric-grid strong {
+  color: #14263c;
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.admin-metric-grid small {
+  color: #68778a;
+  font-weight: 700;
+}
+
+.admin-console .admin-top-tabs {
+  margin-top: 0.5rem;
+}
+
+.admin-console .admin-top-tab,
+.admin-console .admin-term-tab {
+  border-radius: 8px 8px 0 0;
+}
+
+.admin-console .admin-year-tab {
+  border-radius: 8px;
+}
+
 @media (max-width: 1020px) {
   .member-shell {
     grid-template-columns: 1fr;
+  }
+
+  .admin-console {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-console-sidebar {
+    position: static;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid rgba(28, 57, 94, 0.1);
+  }
+
+  .admin-console-nav {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 0.2rem;
+  }
+
+  .admin-console-nav-group,
+  .admin-console-link {
+    flex: 0 0 auto;
+  }
+
+  .admin-console-curriculum-tree {
+    display: none;
+  }
+
+  .admin-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .member-sidebar {
@@ -2970,6 +3209,19 @@ button {
 }
 
 @media (max-width: 620px) {
+  .admin-console-topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-console-main {
+    width: min(100% - 1rem, 1240px);
+  }
+
+  .admin-metric-grid {
+    grid-template-columns: 1fr;
+  }
+
   .member-topbar {
     align-items: flex-start;
     flex-direction: column;
@@ -4417,13 +4669,17 @@ button {
   }
 
   .brand-mark {
-    margin: -6.8rem 0 -10.5rem 0rem;
+    margin: 0;
     z-index: 1;
-    pointer-events: none;
   }
 
-  .brand-logo {
-    height: 9.5rem;
+  .brand-placeholder-logo {
+    width: 2.65rem;
+    height: 2.65rem;
+  }
+
+  .brand-placeholder-text {
+    display: none;
   }
 
   .mobile-nav-toggle {

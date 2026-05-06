@@ -1,5 +1,6 @@
 "use client";
 
+import type { Route } from "next";
 import { Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
@@ -13,9 +14,40 @@ type Props = {
   files: ResourceLibraryFile[];
   initialYearCycle: "Year A" | "Year B" | "Year C";
   initialTerm: "Term 1" | "Term 2" | "Term 3" | "Term 4";
+  basePath?: "/content" | "/admin";
 };
 
-export function AdminResourceForm({ files, initialYearCycle, initialTerm }: Props) {
+function buildContentHref(
+  basePath: "/content" | "/admin",
+  params: {
+    tab?: "add";
+    year?: string;
+    term?: string;
+  }
+) {
+  const searchParams = new URLSearchParams();
+
+  if (basePath === "/admin") {
+    searchParams.set("section", "content");
+  }
+
+  if (params.tab) {
+    searchParams.set("tab", params.tab);
+  }
+
+  if (params.year) {
+    searchParams.set("year", params.year);
+  }
+
+  if (params.term) {
+    searchParams.set("term", params.term);
+  }
+
+  const query = searchParams.toString();
+  return (query ? `${basePath}?${query}` : basePath) as Route;
+}
+
+export function AdminResourceForm({ files, initialYearCycle, initialTerm, basePath = "/content" }: Props) {
   const router = useRouter();
   const today = getTodayISO();
   const [title, setTitle] = useState("");
@@ -112,11 +144,9 @@ export function AdminResourceForm({ files, initialYearCycle, initialTerm }: Prop
           setManualFile(null);
           form.reset();
           if (shouldAddMore) {
-            router.push(
-              `/content?tab=add&year=${encodeURIComponent(yearCycle)}&term=${encodeURIComponent(term)}`
-            );
+            router.push(buildContentHref(basePath, { tab: "add", year: yearCycle, term }));
           } else {
-            router.push(`/content?year=${encodeURIComponent(yearCycle)}`);
+            router.push(buildContentHref(basePath, { year: yearCycle, term }));
           }
           router.refresh();
         });

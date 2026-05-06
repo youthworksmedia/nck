@@ -1,9 +1,10 @@
 "use client";
 
+import type { Route } from "next";
 import Link from "next/link";
 import { FileText, GripVertical, Music4, NotebookPen, Pencil, Save, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 
 import { AdminAssetPicker } from "@/components/admin-asset-picker";
 import { AdminTermNoteEditor } from "@/components/admin-term-note-editor";
@@ -16,7 +17,9 @@ type Props = {
   resources: Resource[];
   files: ResourceLibraryFile[];
   activeYear: "Year A" | "Year B" | "Year C";
+  activeTerm?: "Term 1" | "Term 2" | "Term 3" | "Term 4";
   termNotes: CurriculumTermNote[];
+  basePath?: "/content" | "/admin";
 };
 
 function isInactiveResource(resource: Resource) {
@@ -30,13 +33,50 @@ function isExpiredResource(resource: Resource) {
   return Boolean(resource.expiryDate && resource.expiryDate < today);
 }
 
-export function AdminResourceList({ resources, files, activeYear, termNotes }: Props) {
+function buildContentHref(
+  basePath: "/content" | "/admin",
+  params: {
+    tab?: "add" | "files";
+    year?: string;
+    term?: string;
+  }
+) {
+  const searchParams = new URLSearchParams();
+
+  if (basePath === "/admin") {
+    searchParams.set("section", params.tab === "files" ? "media" : "content");
+  }
+
+  if (params.tab && params.tab !== "files") {
+    searchParams.set("tab", params.tab);
+  }
+
+  if (params.year) {
+    searchParams.set("year", params.year);
+  }
+
+  if (params.term) {
+    searchParams.set("term", params.term);
+  }
+
+  const query = searchParams.toString();
+  return (query ? `${basePath}?${query}` : basePath) as Route;
+}
+
+export function AdminResourceList({
+  resources,
+  files,
+  activeYear,
+  activeTerm = "Term 1",
+  termNotes,
+  basePath = "/content"
+}: Props) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
-  const [selectedTerm, setSelectedTerm] = useState<"Term 1" | "Term 2" | "Term 3" | "Term 4">("Term 1");
+  const [selectedTerm, setSelectedTerm] = useState<"Term 1" | "Term 2" | "Term 3" | "Term 4">(activeTerm);
   const [draft, setDraft] = useState({
     title: "",
     description: "",
@@ -53,6 +93,10 @@ export function AdminResourceList({ resources, files, activeYear, termNotes }: P
     worksheetFile: null as File | null,
     manualFile: null as File | null
   });
+
+  useEffect(() => {
+    setSelectedTerm(activeTerm);
+  }, [activeTerm]);
 
   const grouped = useMemo(
     () =>
@@ -135,9 +179,7 @@ export function AdminResourceList({ resources, files, activeYear, termNotes }: P
       setEditingId(null);
 
       if (options?.addMore) {
-        router.push(
-          `/content?tab=add&year=${encodeURIComponent(draft.yearCycle)}&term=${encodeURIComponent(draft.term)}`
-        );
+        router.push(buildContentHref(basePath, { tab: "add", year: draft.yearCycle, term: draft.term }));
       }
 
       router.refresh();
@@ -183,7 +225,11 @@ export function AdminResourceList({ resources, files, activeYear, termNotes }: P
                         : "No lessons in this term yet. Use Add to create one here."}
                     </p>
                     <Link
-                      href={`/content?tab=add&year=${encodeURIComponent(yearGroup.yearCycle)}&term=${encodeURIComponent(termGroup.term)}`}
+                      href={buildContentHref(basePath, {
+                        tab: "add",
+                        year: yearGroup.yearCycle,
+                        term: termGroup.term
+                      })}
                       className="button button-primary admin-term-add"
                       aria-label={`Add lesson to ${yearGroup.yearCycle} ${termGroup.term}`}
                       title={`Add lesson to ${yearGroup.yearCycle} ${termGroup.term}`}
