@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Settings, ShieldCheck } from "lucide-react";
 
 import { LogoutButton } from "@/components/logout-button";
@@ -28,8 +27,8 @@ export async function MemberShell({ children }: { children: React.ReactNode }) {
       <div className="member-workspace">
         <header className="member-topbar">
           <div className="member-topbar-identity">
-            <Link href="/account" className="member-topbar-logo" aria-label="New Creation Kids dashboard">
-              <Image src="/pdf-logo.png" alt="" width={44} height={44} priority />
+            <Link href="/" className="member-topbar-brand" aria-label="New Creation Kids homepage">
+              New Creation Kids
             </Link>
             <div>
               <span className="member-topbar-kicker">Signed in</span>

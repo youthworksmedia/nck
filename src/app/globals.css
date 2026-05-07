@@ -2715,9 +2715,10 @@ button {
   justify-content: space-between;
   gap: 1rem;
   padding: 0.9rem 1.5rem;
-  border-bottom: 1px solid rgba(28, 57, 94, 0.1);
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.24);
+  background: #07529b;
+  color: white;
+  box-shadow: 0 14px 28px rgba(16, 67, 133, 0.18);
 }
 
 .member-topbar-identity {
@@ -2727,23 +2728,19 @@ button {
   gap: 0.8rem;
 }
 
-.member-topbar-logo {
-  width: 2.75rem;
-  height: 2.75rem;
-  flex: 0 0 auto;
+.member-topbar-brand {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.75rem;
   border-radius: 8px;
-  background: #ffffff;
-  border: 1px solid rgba(28, 57, 94, 0.1);
-  box-shadow: 0 8px 18px rgba(23, 49, 78, 0.08);
-}
-
-.member-topbar-logo img {
-  width: 2.25rem;
-  height: 2.25rem;
-  object-fit: contain;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  color: white;
+  font-size: 1rem;
+  font-weight: 900;
+  white-space: nowrap;
 }
 
 .member-topbar strong,
@@ -2753,12 +2750,12 @@ button {
 }
 
 .member-topbar strong {
-  color: #17263b;
+  color: white;
 }
 
 .member-topbar-kicker {
   margin-bottom: 0.2rem;
-  color: #66758a;
+  color: rgba(255, 255, 255, 0.78);
   font-size: 0.78rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -2781,6 +2778,13 @@ button {
   border: 1px solid rgba(28, 57, 94, 0.12);
   background: white;
   color: #2a6174;
+}
+
+.member-topbar .nav-logout-button {
+  background: white;
+  color: #07529b;
+  border-color: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 10px 18px rgba(10, 47, 88, 0.16);
 }
 
 .member-shell .site-shell {
