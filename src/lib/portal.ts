@@ -24,6 +24,7 @@ import type {
 const inactiveMembership: MembershipSnapshot = {
   organizationName: "No active membership",
   churchName: "No church set",
+  accountHolderName: "",
   planTier: "essential",
   subscriptionStatus: "inactive",
   renewalDate: "-",
@@ -93,23 +94,46 @@ async function getOrganizationAuthUserLookup(userIds: string[]) {
 
 const getOrganizationMembershipRow = cache(async function getOrganizationMembershipRow() {
   const supabase = await createSupabaseServerClient();
+  const adminSupabase = createSupabaseAdminClient();
   const user = await getCurrentUser();
 
   if (!supabase || !hasSupabaseEnv || !user?.email) {
-    return { supabase, user, membership: null as null | { organization_id: string; role: "owner" | "member" } };
+    return {
+      supabase,
+      user,
+      membership: null as null | {
+        id?: string;
+        organization_id: string;
+        role: "owner" | "member";
+        user_id?: string | null;
+        invitation_email?: string | null;
+        display_name?: string | null;
+      }
+    };
   }
 
   const normalizedEmail = user.email.toLowerCase();
+  const membershipClient = adminSupabase ?? supabase;
 
   const { data: memberships } = await supabase
     .from("organization_members")
-    .select("organization_id, role, user_id, invitation_email")
+    .select("id, organization_id, role, user_id, invitation_email, display_name")
     .or(`user_id.eq.${user.id},invitation_email.eq.${normalizedEmail}`)
     .limit(10);
 
+  const rows = memberships?.length
+    ? memberships
+    : (
+        await membershipClient
+          .from("organization_members")
+          .select("id, organization_id, role, user_id, invitation_email, display_name")
+          .or(`user_id.eq.${user.id},invitation_email.eq.${normalizedEmail}`)
+          .limit(10)
+      ).data;
+
   const bestMatch =
-    memberships?.find((membership) => membership.user_id === user.id) ??
-    memberships?.find((membership) => membership.invitation_email?.toLowerCase() === normalizedEmail) ??
+    rows?.find((membership) => membership.user_id === user.id) ??
+    rows?.find((membership) => membership.invitation_email?.toLowerCase() === normalizedEmail) ??
     null;
 
   return {
@@ -117,8 +141,12 @@ const getOrganizationMembershipRow = cache(async function getOrganizationMembers
     user,
     membership: bestMatch
       ? {
+          id: bestMatch.id,
           organization_id: bestMatch.organization_id,
-          role: bestMatch.role === "owner" ? "owner" : "member"
+          role: bestMatch.role === "owner" ? "owner" : "member",
+          user_id: bestMatch.user_id,
+          invitation_email: bestMatch.invitation_email,
+          display_name: bestMatch.display_name
         }
       : null
   };
@@ -239,6 +267,7 @@ export async function isCurrentUserTeamMember() {
 
 export async function getMembershipSnapshot(): Promise<MembershipSnapshot> {
   const { supabase, user, membership: memberRow } = await getOrganizationMembershipRow();
+  const adminSupabase = createSupabaseAdminClient();
 
   if (!supabase || !hasSupabaseEnv) {
     return user && isDemoOwnerEmail(user.email) ? demoMembership : inactiveMembership;
@@ -252,23 +281,44 @@ export async function getMembershipSnapshot(): Promise<MembershipSnapshot> {
     return inactiveMembership;
   }
 
-  const [{ data: organization }, { data: subscription }, { count: memberCount }] = await Promise.all([
-    supabase
+  const membershipClient = adminSupabase ?? supabase;
+  const [
+    { data: organization },
+    { data: subscription },
+    { count: memberCount },
+    { data: ownerRow },
+    { data: latestOrder }
+  ] = await Promise.all([
+    membershipClient
       .from("organizations")
-      .select("name, church_name")
+      .select("name, church_name, account_holder_name")
       .eq("id", memberRow.organization_id)
       .limit(1)
       .maybeSingle(),
-    supabase
+    membershipClient
       .from("subscriptions")
       .select("status, tier, current_period_end")
       .eq("organization_id", memberRow.organization_id)
       .limit(1)
       .maybeSingle(),
-    supabase
+    membershipClient
       .from("organization_members")
       .select("*", { count: "exact", head: true })
+      .eq("organization_id", memberRow.organization_id),
+    membershipClient
+      .from("organization_members")
+      .select("display_name, invitation_email")
       .eq("organization_id", memberRow.organization_id)
+      .eq("role", "owner")
+      .limit(1)
+      .maybeSingle(),
+    membershipClient
+      .from("purchase_orders")
+      .select("account_holder_name, church_name, plan_tier")
+      .eq("organization_id", memberRow.organization_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
   ]);
 
   if (!organization || !subscription) {
@@ -277,8 +327,15 @@ export async function getMembershipSnapshot(): Promise<MembershipSnapshot> {
 
   return {
     organizationName: normalizeOrganizationName(organization.name),
-    churchName: normalizeOrganizationName(organization.church_name ?? organization.name),
-    planTier: subscription.tier,
+    churchName: normalizeOrganizationName(
+      organization.church_name ?? latestOrder?.church_name ?? organization.name
+    ),
+    accountHolderName:
+      organization.account_holder_name ??
+      latestOrder?.account_holder_name ??
+      ownerRow?.display_name ??
+      fallbackPersonName(ownerRow?.invitation_email, "owner"),
+    planTier: subscription.tier ?? latestOrder?.plan_tier,
     subscriptionStatus: subscription.status,
     renewalDate: subscription.current_period_end,
     memberCount: memberCount ?? 0

@@ -65,6 +65,7 @@ export const demoTeamMembers: TeamMember[] = [
 export const demoMembership: MembershipSnapshot = {
   organizationName: "New Creation Kids",
   churchName: "New Creation Kids",
+  accountHolderName: "Robert",
   planTier: "scale",
   subscriptionStatus: "active",
   renewalDate: "2027-03-01",

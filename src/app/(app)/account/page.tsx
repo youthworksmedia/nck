@@ -138,21 +138,32 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
       .slice(0, 2)
       .map((part) => part[0]?.toUpperCase() ?? "")
       .join("") || "TM";
+  const currentTeamMember = teamMembers.find(
+    (member) =>
+      member.userId === user?.id ||
+      member.email.toLowerCase() === user?.email?.toLowerCase()
+  );
+  const ownerTeamMember = teamMembers.find((member) => member.role === "owner");
   const ownerName =
-    teamMembers.find((member) => member.role === "owner")?.name ??
-    user?.email?.split("@")[0] ??
+    membership.accountHolderName ||
+    ownerTeamMember?.name ||
+    user?.email?.split("@")[0] ||
     "Friend";
-  const accountHolderName =
-    teamMembers.find((member) => member.role === "owner")?.name ??
-    membership.organizationName;
+  const accountHolderName = membership.accountHolderName || ownerTeamMember?.name || ownerName;
   const userFullName =
     user && "user_metadata" in user && typeof user.user_metadata?.full_name === "string"
       ? user.user_metadata.full_name
       : undefined;
   const currentMemberName =
+    currentTeamMember?.name ??
     userFullName ??
     user?.email?.split("@")[0] ??
     "Friend";
+  const planLabel = plan?.name ?? membership.planTier;
+  const accountContextLabel =
+    membership.subscriptionStatus === "inactive"
+      ? "No active membership"
+      : `${membership.churchName} · ${planLabel} plan`;
   const recentTeamActivities = isOwner
     ? [
         {
@@ -201,7 +212,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
               </div>
             </div>
             <p className="account-owner-hero-summary">
-              Equipping kids to know, love and follow Jesus.
+              {accountContextLabel}
             </p>
           </div>
           <div className="account-owner-hero-illustration" aria-hidden="true" />
@@ -251,7 +262,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
               </div>
             </div>
             <p className="account-owner-hero-summary">
-              Equipping kids to know, love and follow Jesus.
+              {accountContextLabel}
             </p>
           </div>
           <div className="account-owner-hero-illustration" aria-hidden="true" />
@@ -276,7 +287,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
               <Users size={18} />
               <span className="account-dashboard-action-copy">
                 <strong>My Team</strong>
-                <small>{membership.organizationName}</small>
+                <small>{membership.churchName}</small>
               </span>
             </a>
             <Link href="/resources" className="button button-primary">

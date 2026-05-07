@@ -77,6 +77,7 @@ export type TeamMember = {
 export type MembershipSnapshot = {
   organizationName: string;
   churchName: string;
+  accountHolderName?: string;
   planTier: PlanTier;
   subscriptionStatus: "active" | "trialing" | "past_due" | "canceled" | "inactive";
   renewalDate: string;
