@@ -1,5 +1,7 @@
 export const serverEnv = {
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
+  resendApiKey: process.env.RESEND_API_KEY ?? "",
+  emailFrom: process.env.EMAIL_FROM ?? "",
   stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? "",
   stripePriceTierOne: process.env.STRIPE_PRICE_TIER_ONE ?? "",
   stripePriceTierTwo: process.env.STRIPE_PRICE_TIER_TWO ?? "",

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { useState } from "react";
-import { LayoutDashboard } from "lucide-react";
+import { CreditCard, LayoutDashboard } from "lucide-react";
 
 import { LogoutButton } from "@/components/logout-button";
 
@@ -46,11 +46,23 @@ export function MobileNavMenu({ items, isLoggedIn }: Props) {
                   {item.label}
                 </Link>
               ))}
-              <Link href="/account" className="mobile-dashboard-link" onClick={() => setIsOpen(false)}>
-                <LayoutDashboard size={16} />
-                <span>Dashboard</span>
-              </Link>
-              {isLoggedIn ? <LogoutButton /> : <Link href="/login" onClick={() => setIsOpen(false)}>Login</Link>}
+              {isLoggedIn ? (
+                <>
+                  <Link href="/account" className="mobile-dashboard-link" onClick={() => setIsOpen(false)}>
+                    <LayoutDashboard size={16} />
+                    <span>Dashboard</span>
+                  </Link>
+                  <LogoutButton />
+                </>
+              ) : (
+                <>
+                  <Link href="/subscribe" className="mobile-dashboard-link" onClick={() => setIsOpen(false)}>
+                    <CreditCard size={16} />
+                    <span>Subscribe</span>
+                  </Link>
+                  <Link href="/login" onClick={() => setIsOpen(false)}>Login</Link>
+                </>
+              )}
             </nav>
           </div>
         </div>

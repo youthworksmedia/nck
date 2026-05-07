@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 
 import { CheckoutForm } from "@/components/checkout-form";
-import { buildPrivateMetadata } from "@/lib/metadata";
+import { buildPublicMetadata } from "@/lib/metadata";
 import { getPlanByTier, plans } from "@/lib/plans";
 import {
   getCheckoutProfile,
@@ -18,18 +17,15 @@ type SubscribePageProps = {
   }>;
 };
 
-export const metadata: Metadata = buildPrivateMetadata({
-  title: "Checkout",
-  description: "Complete your New Creation Kids membership checkout or renewal."
+export const metadata: Metadata = buildPublicMetadata({
+  title: "Subscribe",
+  description: "Complete your New Creation Kids membership checkout or renewal.",
+  path: "/subscribe"
 });
 
 export default async function SubscribePage({ searchParams }: SubscribePageProps) {
   const params = await searchParams;
-  const plan = getPlanByTier(params.tier ?? "");
-
-  if (!plan) {
-    redirect("/pricing");
-  }
+  const plan = getPlanByTier(params.tier ?? "") ?? plans[0];
 
   const [user, membership, isOwner, isTeamMember, checkoutProfile] = await Promise.all([
     getCurrentUser(),

@@ -8,6 +8,7 @@ import {
   getFakeExpiryDate,
   isAcceptedFakeCard
 } from "@/lib/checkout";
+import { sendWelcomeEmail } from "@/lib/email-delivery";
 import { isStrongPassword, passwordRequirementText } from "@/lib/password";
 import { getPlanByTier } from "@/lib/plans";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -365,10 +366,18 @@ export async function POST(request: Request) {
       throw new Error(subscriptionError.message);
     }
 
+    const welcomeEmail = await sendWelcomeEmail({
+      to: normalizedEmail,
+      accountHolderName: input.accountHolderName,
+      churchName: input.churchName,
+      planName: plan.name
+    });
+
     return NextResponse.json({
       message: `Purchase successful. Order ${orderNumber} is active.`,
       redirectTo: `${publicEnv.siteUrl}/account?checkout=success&order=${encodeURIComponent(orderNumber)}`,
-      requiresSignIn: !isSignedInOwner
+      requiresSignIn: !isSignedInOwner,
+      welcomeEmail
     });
   } catch (error) {
     if (orderId) {
