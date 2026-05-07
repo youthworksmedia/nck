@@ -19,12 +19,6 @@ type Props = {
   files: ResourceLibraryFile[];
 };
 
-const labels: Record<ResourceAssetKey, string> = {
-  music: "Music files",
-  worksheet: "Worksheet files",
-  manual: "Manual files"
-};
-
 function formatFileSize(sizeBytes: number) {
   if (sizeBytes >= 1024 * 1024) {
     return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -57,42 +51,20 @@ function FileKindIcon({ fileName }: { fileName: string }) {
 
 export function AdminFileLibrary({ files }: Props) {
   const router = useRouter();
-  const inputRefs = useRef<Record<ResourceAssetKey, HTMLInputElement | null>>({
-    music: null,
-    worksheet: null,
-    manual: null
-  });
-  const [activeKind, setActiveKind] = useState<ResourceAssetKey>("manual");
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const visibleFiles = files.filter((file) => file.kind === activeKind);
+  const visibleFiles = files.filter((file) => file.kind === "general");
 
   return (
     <div className="stack-sm">
-      <div className="admin-file-tabs" role="tablist" aria-label="File library tabs">
-        {(["manual", "worksheet", "music"] as const).map((kind) => (
-          <button
-            key={kind}
-            type="button"
-            role="tab"
-            aria-selected={activeKind === kind}
-            className={`admin-file-tab ${activeKind === kind ? "admin-file-tab-active" : ""}`}
-            onClick={() => setActiveKind(kind)}
-          >
-            {labels[kind]}
-          </button>
-        ))}
-      </div>
-
       <section className="panel panel-compact">
         <div className="admin-file-library-head">
-          <h3>{labels[activeKind]}</h3>
+          <h3>General</h3>
           <div>
             <input
-              ref={(element) => {
-                inputRefs.current[activeKind] = element;
-              }}
+              ref={inputRef}
               type="file"
               className="asset-picker-input"
               onChange={(event) => {
@@ -105,7 +77,7 @@ export function AdminFileLibrary({ files }: Props) {
                 setMessage(null);
                 startTransition(async () => {
                   const formData = new FormData();
-                  formData.set("kind", activeKind);
+                  formData.set("kind", "general");
                   formData.set("file", file);
 
                   const response = await fetch("/api/admin/resource-files", {
@@ -127,7 +99,7 @@ export function AdminFileLibrary({ files }: Props) {
               type="button"
               className="button button-primary"
               disabled={isPending}
-              onClick={() => inputRefs.current[activeKind]?.click()}
+              onClick={() => inputRef.current?.click()}
             >
               <Plus size={16} />
               <span>Add</span>
@@ -168,7 +140,7 @@ export function AdminFileLibrary({ files }: Props) {
                         },
                         body: JSON.stringify({
                           path: file.path,
-                          kind: file.kind
+                          kind: "general"
                         })
                       });
 

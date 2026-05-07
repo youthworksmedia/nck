@@ -15,10 +15,6 @@ type Props = {
   onUploadFile: (file: File | null) => void;
 };
 
-function formatLabel(kind: ResourceAssetKey) {
-  return kind.charAt(0).toUpperCase() + kind.slice(1);
-}
-
 function getFileFormat(name: string) {
   const parts = name.split(".");
   return parts.length > 1 ? parts.at(-1)?.toUpperCase() ?? "FILE" : "FILE";
@@ -34,7 +30,7 @@ export function AdminAssetPicker({
 }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const label = kind === "worksheet" ? "Worksheets" : formatLabel(kind);
+  const label = "General";
   const matchingFiles = files.filter((file) => file.kind === kind);
 
   const selectedExistingFile = useMemo(

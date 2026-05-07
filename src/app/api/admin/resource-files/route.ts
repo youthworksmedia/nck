@@ -7,13 +7,14 @@ import {
   removeStoredResourceFile,
   saveUploadedResourceFile
 } from "@/lib/resource-assets";
+import { parseLessonResourceFiles, serializeLessonResourceFiles } from "@/lib/lesson-resource-files";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
 const deleteSchema = z.object({
   path: z.string().min(1),
-  kind: z.enum(["music", "worksheet", "manual"])
+  kind: z.enum(["general"])
 });
 
 export async function GET() {
@@ -75,8 +76,8 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ message: "Admin content tools are not ready." }, { status: 400 });
   }
 
-  const pathColumn = `${payload.data.kind}_file_path`;
-  const nameColumn = `${payload.data.kind}_file_name`;
+  const pathColumn = "manual_file_path";
+  const nameColumn = "manual_file_name";
 
   let { error: updateError } = await adminSupabase
     .from("resources")
@@ -104,6 +105,28 @@ export async function DELETE(request: Request) {
   if (updateError) {
     return NextResponse.json({ message: updateError.message }, { status: 400 });
   }
+
+  const { data: resources } = await adminSupabase
+    .from("resources")
+    .select("*");
+
+  await Promise.all(
+    (resources ?? []).map(async (resource) => {
+      const resourceFiles = parseLessonResourceFiles(resource.file_url, resource);
+      const retainedFiles = resourceFiles.filter((entry) => entry.filePath !== payload.data.path);
+
+      if (retainedFiles.length === resourceFiles.length) {
+        return;
+      }
+
+      await adminSupabase
+        .from("resources")
+        .update({
+          file_url: serializeLessonResourceFiles(retainedFiles)
+        })
+        .eq("id", resource.id);
+    })
+  );
 
   await removeStoredResourceFile(payload.data.path);
 

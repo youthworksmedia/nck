@@ -3,7 +3,8 @@ import { randomUUID } from "node:crypto";
 import { serverEnv } from "@/lib/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
-export const resourceAssetKeys = ["music", "worksheet", "manual"] as const;
+export const resourceAssetKeys = ["general"] as const;
+const legacyResourceAssetKeys = ["manual", "music", "worksheet"] as const;
 
 export type ResourceAssetKey = (typeof resourceAssetKeys)[number];
 
@@ -79,7 +80,7 @@ export function normalizeResourceStoragePath(filePath?: string | null) {
   const [kind] = cleaned.split("/");
 
   if (
-    !resourceAssetKeys.includes(kind as ResourceAssetKey) ||
+    ![...resourceAssetKeys, ...legacyResourceAssetKeys].includes(kind as ResourceAssetKey | (typeof legacyResourceAssetKeys)[number]) ||
     cleaned.includes("..") ||
     cleaned.endsWith("/")
   ) {

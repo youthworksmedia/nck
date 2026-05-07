@@ -23,7 +23,8 @@ export function normalizeLessonResourceType(value: unknown): LessonResourceType 
 }
 
 export function storageKindForLessonResourceType(type: LessonResourceType): ResourceAssetKey {
-  return type === "music" ? "music" : "manual";
+  void type;
+  return "general";
 }
 
 function normalizeAttachment(value: unknown): LessonResourceAttachment | null {

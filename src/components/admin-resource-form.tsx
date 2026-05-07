@@ -51,9 +51,8 @@ function buildContentHref(
   return (query ? `${basePath}?${query}` : basePath) as Route;
 }
 
-export function AdminResourceForm({ files: _files, initialYearCycle, initialTerm, basePath = "/content" }: Props) {
+export function AdminResourceForm({ files, initialYearCycle, initialTerm, basePath = "/content" }: Props) {
   const router = useRouter();
-  void _files;
   const today = getTodayISO();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -249,7 +248,7 @@ export function AdminResourceForm({ files: _files, initialYearCycle, initialTerm
           </select>
         </div>
       </div>
-      <AdminLessonResourceFields value={resourceFiles} onChange={setResourceFiles} />
+      <AdminLessonResourceFields value={resourceFiles} files={files} onChange={setResourceFiles} />
       <WysiwygEditor
         label="Content *"
         value={description}

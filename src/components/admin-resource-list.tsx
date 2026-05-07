@@ -70,14 +70,13 @@ function buildContentHref(
 
 export function AdminResourceList({
   resources,
-  files: _files,
+  files,
   activeYear,
   activeTerm = "Term 1",
   termNotes,
   basePath = "/content"
 }: Props) {
   const router = useRouter();
-  void _files;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -434,6 +433,7 @@ export function AdminResourceList({
                             </div>
                             <AdminLessonResourceFields
                               value={draft.resourceFiles}
+                              files={files}
                               onChange={(resourceFiles) =>
                                 setDraft((current) => ({ ...current, resourceFiles }))
                               }

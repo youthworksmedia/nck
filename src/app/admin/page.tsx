@@ -251,7 +251,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 <article>
                   <span>Media files</span>
                   <strong>{files.length}</strong>
-                  <small>Manuals, worksheets, music</small>
+                  <small>General</small>
                 </article>
               </section>
               <section className="panel admin-console-card">
@@ -438,7 +438,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               <div className="section-head">
                 <div>
                   <h1>Media folder</h1>
-                  <p>Upload lesson files, PowerPoints, PDFs, worksheets, music, and other media.</p>
+                  <p>Upload lesson resource files to the General folder.</p>
                 </div>
               </div>
               <AdminFileLibrary files={files} />
