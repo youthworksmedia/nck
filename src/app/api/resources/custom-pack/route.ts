@@ -1,10 +1,9 @@
-import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import { PDFDocument } from "pdf-lib";
 import { NextResponse } from "next/server";
 
-import { resolveStoredResourceFilePath } from "@/lib/resource-assets";
+import { downloadStoredResourceFile } from "@/lib/resource-assets";
 import { getCurrentUser, getMembershipSnapshot } from "@/lib/portal";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -90,8 +89,13 @@ export async function GET(request: Request) {
 
   for (const filePath of sourceFiles) {
     try {
-      const bytes = await readFile(resolveStoredResourceFilePath(filePath));
-      const sourcePdf = await PDFDocument.load(bytes);
+      const storedFile = await downloadStoredResourceFile(filePath, filePath);
+
+      if (!storedFile) {
+        continue;
+      }
+
+      const sourcePdf = await PDFDocument.load(storedFile.bytes);
       const pageIndexes = sourcePdf.getPageIndices();
       const copiedPages = await mergedPdf.copyPages(sourcePdf, pageIndexes);
 

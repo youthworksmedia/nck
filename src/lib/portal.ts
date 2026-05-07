@@ -224,7 +224,7 @@ export async function isCurrentUserOwner() {
     return membership.role === "owner";
   }
 
-  return isDemoOwnerEmail(user.email);
+  return false;
 }
 
 export async function isCurrentUserTeamMember() {
@@ -249,7 +249,7 @@ export async function getMembershipSnapshot(): Promise<MembershipSnapshot> {
   }
 
   if (!memberRow?.organization_id) {
-    return isDemoOwnerEmail(user.email) ? demoMembership : inactiveMembership;
+    return inactiveMembership;
   }
 
   const [{ data: organization }, { data: subscription }, { count: memberCount }] = await Promise.all([
@@ -272,15 +272,7 @@ export async function getMembershipSnapshot(): Promise<MembershipSnapshot> {
   ]);
 
   if (!organization || !subscription) {
-    return isDemoOwnerEmail(user.email)
-      ? {
-          ...demoMembership,
-          organizationName: organization ? normalizeOrganizationName(organization.name) : demoMembership.organizationName,
-          churchName: organization
-            ? normalizeOrganizationName(organization.church_name ?? organization.name)
-            : demoMembership.churchName
-        }
-      : inactiveMembership;
+    return inactiveMembership;
   }
 
   return {
@@ -302,7 +294,6 @@ export async function getResources(): Promise<Resource[]> {
     return user && isDemoOwnerEmail(user.email) ? demoResources : [];
   }
 
-  const membershipSnapshot = await getMembershipSnapshot();
   const resourcesClient = adminSupabase ?? supabase;
 
   const { data } = await resourcesClient
@@ -316,7 +307,7 @@ export async function getResources(): Promise<Resource[]> {
     .order("lesson_number", { ascending: true });
 
   if (!data?.length) {
-    return membershipSnapshot.subscriptionStatus === "active" ? demoResources : [];
+    return [];
   }
 
   return data.map((resource) => ({
@@ -351,7 +342,6 @@ export async function getCurriculumTermNotes(): Promise<CurriculumTermNote[]> {
     return user && isDemoOwnerEmail(user.email) ? demoTermNotes : [];
   }
 
-  const membershipSnapshot = await getMembershipSnapshot();
   const notesClient = adminSupabase ?? supabase;
 
   const { data, error } = await notesClient
@@ -361,7 +351,7 @@ export async function getCurriculumTermNotes(): Promise<CurriculumTermNote[]> {
     .order("term", { ascending: true });
 
   if (error || !data?.length) {
-    return membershipSnapshot.subscriptionStatus === "active" ? demoTermNotes : [];
+    return [];
   }
 
   return data.map((note) => ({
@@ -383,42 +373,6 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
   }
 
   if (!memberRow) {
-    if (isDemoOwnerEmail(user.email)) {
-      const adminSupabase = createSupabaseAdminClient();
-
-      if (!adminSupabase) {
-        return demoTeamMembers;
-      }
-
-      const { data: organization } = await adminSupabase
-        .from("organizations")
-        .select("id")
-        .eq("owner_user_id", user.id)
-        .limit(1)
-        .maybeSingle();
-
-      if (!organization?.id) {
-        return demoTeamMembers;
-      }
-
-      const { data } = await adminSupabase
-        .from("organization_members")
-        .select("*")
-        .eq("organization_id", organization.id);
-
-      if (!data?.length) {
-        return demoTeamMembers;
-      }
-
-      const authUserLookup = await getOrganizationAuthUserLookup(
-        data
-          .map((member) => (typeof member.user_id === "string" ? member.user_id : ""))
-          .filter(Boolean)
-      );
-
-      return mapTeamMembersWithFallbacks(data, authUserLookup);
-    }
-
     return [];
   }
 
@@ -431,7 +385,7 @@ export async function getTeamMembers(): Promise<TeamMember[]> {
     .eq("organization_id", memberRow.organization_id);
 
   if (!data?.length) {
-    return isDemoOwnerEmail(user.email) ? demoTeamMembers : [];
+    return [];
   }
 
   const authUserLookup = await getOrganizationAuthUserLookup(
@@ -455,7 +409,7 @@ export async function getAccountHolderEmail() {
   }
 
   if (!memberRow?.organization_id) {
-    return isDemoOwnerEmail(user.email) ? user.email : null;
+    return null;
   }
 
   const { data: ownerRow } = await supabase

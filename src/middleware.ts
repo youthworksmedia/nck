@@ -3,7 +3,16 @@ import { createServerClient } from "@supabase/ssr";
 
 import { hasSupabaseEnv, publicEnv } from "@/lib/public-env";
 
-const protectedPrefixes = ["/account", "/content", "/resources", "/team", "/lesson-builder"];
+const protectedPrefixes = ["/account", "/admin", "/content", "/resources", "/team", "/lesson-builder"];
+
+function applySecurityHeaders(response: NextResponse) {
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("X-Frame-Options", "DENY");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+
+  return response;
+}
 
 function clearSupabaseAuthCookies(request: NextRequest, response: NextResponse) {
   request.cookies
@@ -67,12 +76,19 @@ export async function middleware(request: NextRequest) {
   if (isProtected && !user) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
-    return NextResponse.redirect(loginUrl);
+    return applySecurityHeaders(NextResponse.redirect(loginUrl));
   }
 
-  return response;
+  return applySecurityHeaders(response);
 }
 
 export const config = {
-  matcher: ["/account/:path*", "/content/:path*", "/resources/:path*", "/team/:path*", "/lesson-builder/:path*"]
+  matcher: [
+    "/account/:path*",
+    "/admin/:path*",
+    "/content/:path*",
+    "/resources/:path*",
+    "/team/:path*",
+    "/lesson-builder/:path*"
+  ]
 };

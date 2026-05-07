@@ -1,9 +1,6 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-
 import { NextResponse } from "next/server";
 
-import { resolveStoredResourceFilePath } from "@/lib/resource-assets";
+import { downloadStoredResourceFile } from "@/lib/resource-assets";
 import { getCurrentUser, getMembershipSnapshot } from "@/lib/portal";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -20,27 +17,6 @@ const assetColumns = {
   worksheet: { path: "worksheet_file_path", name: "worksheet_file_name" },
   manual: { path: "manual_file_path", name: "manual_file_name" }
 } as const;
-
-function getContentType(fileName: string) {
-  const ext = path.extname(fileName).toLowerCase();
-
-  switch (ext) {
-    case ".pdf":
-      return "application/pdf";
-    case ".doc":
-      return "application/msword";
-    case ".docx":
-      return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-    case ".mp3":
-      return "audio/mpeg";
-    case ".wav":
-      return "audio/wav";
-    case ".zip":
-      return "application/zip";
-    default:
-      return "application/octet-stream";
-  }
-}
 
 export async function GET(request: Request, context: RouteContext) {
   const asset = new URL(request.url).searchParams.get("asset") as keyof typeof assetColumns | null;
@@ -84,11 +60,15 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   try {
-    const buffer = await readFile(resolveStoredResourceFilePath(filePath));
+    const storedFile = await downloadStoredResourceFile(filePath, fileName);
 
-    return new NextResponse(new Uint8Array(buffer), {
+    if (!storedFile) {
+      return NextResponse.json({ message: "Could not open this file." }, { status: 404 });
+    }
+
+    return new NextResponse(Buffer.from(storedFile.bytes), {
       headers: {
-        "Content-Type": getContentType(fileName),
+        "Content-Type": storedFile.contentType,
         "Content-Disposition": `attachment; filename="${encodeURIComponent(fileName)}"`,
         "Cache-Control": "private, no-store"
       }
