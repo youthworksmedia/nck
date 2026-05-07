@@ -52,7 +52,6 @@ type AdminPageProps = {
 };
 
 const years = ["Year A", "Year B", "Year C"] as const;
-const terms = ["Term 1", "Term 2", "Term 3", "Term 4"] as const;
 
 function getSection(value?: string) {
   if (
@@ -152,26 +151,21 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
           <div className="admin-console-nav-group">
             <Link
-              href={adminHref({ section: "content", year: activeYear, term: activeTerm })}
+              href={adminHref({ section: "content", year: activeYear })}
               className={`admin-console-link ${activeSection === "content" ? "admin-console-link-active" : ""}`}
             >
               <BookOpenText size={18} />
               <span>Content</span>
             </Link>
-            <div className="admin-console-curriculum-tree">
+            <div className="admin-console-year-links" aria-label="Content years">
               {years.map((year) => (
-                <details key={year} open={activeSection === "content" && activeYear === year}>
-                  <summary>{year}</summary>
-                  {terms.map((term) => (
-                    <Link
-                      key={`${year}-${term}`}
-                      href={adminHref({ section: "content", year, term })}
-                      className={activeSection === "content" && activeYear === year && activeTerm === term ? "is-active" : ""}
-                    >
-                      {term}
-                    </Link>
-                  ))}
-                </details>
+                <Link
+                  key={year}
+                  href={adminHref({ section: "content", year })}
+                  className={activeSection === "content" && activeYear === year ? "is-active" : ""}
+                >
+                  {year}
+                </Link>
               ))}
             </div>
           </div>
@@ -282,28 +276,23 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   <h1>Content</h1>
                   <p>{activeYear} {activeTerm}: add, edit, reorder, or delete lesson content.</p>
                 </div>
-                <Link
-                  href={adminHref({ section: "content", tab: "add", year: activeYear, term: activeTerm })}
-                  className="button button-primary"
-                >
-                  <Plus size={16} />
-                  <span>Add content</span>
-                </Link>
-              </div>
-
-              <div className="admin-top-tabs" role="tablist" aria-label="Content tabs">
-                <Link
-                  href={adminHref({ section: "content", year: activeYear, term: activeTerm })}
-                  className={`admin-top-tab ${activeTab === "library" ? "admin-top-tab-active" : ""}`}
-                >
-                  List page
-                </Link>
-                <Link
-                  href={adminHref({ section: "content", tab: "add", year: activeYear, term: activeTerm })}
-                  className={`admin-top-tab ${activeTab === "add" ? "admin-top-tab-active" : ""}`}
-                >
-                  Add content
-                </Link>
+                {activeTab === "add" ? (
+                  <Link
+                    href={adminHref({ section: "content", year: activeYear, term: activeTerm })}
+                    className="button button-secondary"
+                  >
+                    <FileText size={16} />
+                    <span>Back to content</span>
+                  </Link>
+                ) : (
+                  <Link
+                    href={adminHref({ section: "content", tab: "add", year: activeYear, term: activeTerm })}
+                    className="button button-primary"
+                  >
+                    <Plus size={16} />
+                    <span>Add content</span>
+                  </Link>
+                )}
               </div>
 
               {activeTab === "add" ? (

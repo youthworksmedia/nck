@@ -3003,7 +3003,7 @@ button {
   gap: 0.35rem;
 }
 
-.admin-console-curriculum-tree {
+.admin-console-year-links {
   display: grid;
   gap: 0.25rem;
   margin-left: 2.15rem;
@@ -3011,36 +3011,17 @@ button {
   border-left: 1px solid rgba(28, 57, 94, 0.12);
 }
 
-.admin-console-curriculum-tree details {
-  display: grid;
-  gap: 0.2rem;
-}
-
-.admin-console-curriculum-tree summary {
-  list-style: none;
-  padding: 0.38rem 0.3rem;
-  color: #516176;
-  cursor: pointer;
-  font-size: 0.88rem;
-  font-weight: 850;
-}
-
-.admin-console-curriculum-tree summary::-webkit-details-marker {
-  display: none;
-}
-
-.admin-console-curriculum-tree a {
+.admin-console-year-links a {
   display: block;
-  margin: 0.1rem 0 0.1rem 0.45rem;
-  padding: 0.42rem 0.55rem;
+  padding: 0.48rem 0.55rem;
   border-radius: 6px;
   color: #637083;
-  font-size: 0.86rem;
-  font-weight: 750;
+  font-size: 0.88rem;
+  font-weight: 800;
 }
 
-.admin-console-curriculum-tree a:hover,
-.admin-console-curriculum-tree a.is-active {
+.admin-console-year-links a:hover,
+.admin-console-year-links a.is-active {
   background: #eef8fa;
   color: #0f4d66;
 }
@@ -3239,7 +3220,7 @@ button {
     flex: 0 0 auto;
   }
 
-  .admin-console-curriculum-tree {
+  .admin-console-year-links {
     display: none;
   }
 
