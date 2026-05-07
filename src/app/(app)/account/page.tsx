@@ -10,6 +10,7 @@ import {
   Crown,
   StarIcon,
   CircleCheckBig,
+  Download,
 } from "lucide-react";
 
 import { DeleteMemberButton } from "@/components/delete-member-button";
@@ -542,6 +543,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                     <th>Order</th>
                     <th>Plan</th>
                     <th>Total</th>
+                    <th>Invoice</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -551,6 +553,16 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                       <td>{formatShortOrderNumber(order.orderNumber)}</td>
                       <td>{plans.find((entry) => entry.id === order.planTier)?.name ?? order.planTier}</td>
                       <td>{formatCurrency(order.amount)}</td>
+                      <td>
+                        <a
+                          href={`/api/account/invoices/${order.id}`}
+                          className="button button-secondary account-invoice-button"
+                          title="Download invoice"
+                          aria-label="Download invoice"
+                        >
+                          <Download size={14} />
+                        </a>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

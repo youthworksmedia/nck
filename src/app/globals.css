@@ -2618,6 +2618,21 @@ button {
   padding: 0.45rem 0.7rem;
 }
 
+.account-invoice-button {
+  color: #3d8eff;
+  background: #eef2f7 !important;
+  border: 1px solid #d7dde8 !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.account-invoice-button svg {
+  color: #3d8eff;
+}
+
 .account-card-purchases {
   width: 100%;
   background: #ffffff !important;
