@@ -33,7 +33,7 @@ export const defaultEmailTemplates: EmailTemplate[] = [
     description: "Sent to the account holder after their account is created.",
     subject: "Welcome to New Creation Kids",
     body:
-      "Hi {{accountHolderName}},\n\nWelcome to New Creation Kids. Your {{churchName}} account is ready on the {{planName}} plan, and your ministry team can now access the curriculum library.\n\nLog in here to view lessons, invite team members, and manage invoices from your dashboard:\n{{loginUrl}}\n\nBlessings,\nNew Creation Kids"
+      "Hi {{accountHolderName}},\n\nWelcome to New Creation Kids. Your {{churchName}} account is ready on the {{planName}} plan, and your ministry team can now access the curriculum library.\n\nLog in here to view lessons, invite team members, and manage your account from your dashboard:\n{{loginUrl}}\n\nBlessings,\nNew Creation Kids"
   }
 ];
 

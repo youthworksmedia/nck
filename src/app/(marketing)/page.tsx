@@ -16,14 +16,14 @@ const featureCards = [
   },
   {
     title: "Shared access by invite",
-    text: "Account holders can invite as many leaders as they need, see who has access, reset sub-account passwords, review orders, and download paid invoices."
+    text: "Account holders can invite as many leaders as they need, see who has access, reset sub-account passwords, and review orders."
   }
 ];
 
 export const metadata: Metadata = buildPublicMetadata({
   title: "Fun Bible lessons, curriculum and lesson planning",
   description:
-    "Explore New Creation Kids for a 3-year curriculum cycle, downloadable lesson resources, shared account access, orders, and invoices.",
+    "Explore New Creation Kids for a 3-year curriculum cycle, downloadable lesson resources, shared account access, and orders.",
   path: "/"
 });
 
@@ -57,7 +57,7 @@ export default function HomePage() {
               <h2>Choose the annual subscription level that matches your kids ministry size.</h2>
             </div>
             <p>
-              Every plan includes the full curriculum library, lesson resources, orders and invoices, and unlimited invited accounts. Pricing is based on student numbers.
+              Every plan includes the full curriculum library, lesson resources, order history, and unlimited invited accounts. Pricing is based on student numbers.
             </p>
           </div>
           <div className="three-up">

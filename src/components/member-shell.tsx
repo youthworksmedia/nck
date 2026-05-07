@@ -1,68 +1,47 @@
 import Link from "next/link";
-import {
-  BookOpenText,
-  CreditCard,
-  LayoutDashboard,
-  LibraryBig,
-  Settings,
-  ShieldCheck,
-  Users
-} from "lucide-react";
+import Image from "next/image";
+import { Settings, ShieldCheck } from "lucide-react";
 
 import { LogoutButton } from "@/components/logout-button";
 import { isCurrentUserSuperAdmin } from "@/lib/admin-access";
-import { getCurrentUser } from "@/lib/portal";
+import { getCurrentOrganizationMembership } from "@/lib/portal";
 
 export async function MemberShell({ children }: { children: React.ReactNode }) {
-  const [user, isSuperAdmin] = await Promise.all([getCurrentUser(), isCurrentUserSuperAdmin()]);
-  const displayName =
+  const [{ user, membership }, isSuperAdmin] = await Promise.all([
+    getCurrentOrganizationMembership(),
+    isCurrentUserSuperAdmin()
+  ]);
+  const userFullName =
     user && "user_metadata" in user && typeof user.user_metadata?.full_name === "string"
-      ? user.user_metadata.full_name
-      : user?.email?.split("@")[0] ?? "Member";
-
-  const navItems = [
-    { href: "/account", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/resources", label: "Lessons", icon: BookOpenText },
-    { href: "/team", label: "Team", icon: Users },
-    { href: "/subscribe", label: "Subscription", icon: CreditCard }
-  ] as const;
+      ? user.user_metadata.full_name.trim()
+      : "";
+  const displayName =
+    membership?.role === "owner"
+      ? membership.display_name ||
+        userFullName ||
+        user?.email ||
+        "Account holder"
+      : user?.email ?? "Team member";
 
   return (
     <div className="member-shell">
-      <aside className="member-sidebar" aria-label="Member navigation">
-        <Link href="/account" className="member-brand">
-          <span className="member-brand-mark">NCK</span>
-          <span>
-            <strong>New Creation Kids</strong>
-            <small>Member portal</small>
-          </span>
-        </Link>
-        <nav className="member-nav">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-
-            return (
-              <Link key={item.href} href={item.href} className="member-nav-link">
-                <Icon size={18} />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-          {isSuperAdmin ? (
-            <Link href="/admin" className="member-nav-link member-nav-link-admin">
-              <ShieldCheck size={18} />
-              <span>Admin</span>
-            </Link>
-          ) : null}
-        </nav>
-      </aside>
       <div className="member-workspace">
         <header className="member-topbar">
-          <div>
-            <span className="member-topbar-kicker">Signed in</span>
-            <strong>{displayName}</strong>
+          <div className="member-topbar-identity">
+            <Link href="/account" className="member-topbar-logo" aria-label="New Creation Kids dashboard">
+              <Image src="/pdf-logo.png" alt="" width={44} height={44} priority />
+            </Link>
+            <div>
+              <span className="member-topbar-kicker">Signed in</span>
+              <strong>{displayName}</strong>
+            </div>
           </div>
           <div className="member-topbar-actions">
+            {isSuperAdmin ? (
+              <Link href="/admin" className="member-icon-link" aria-label="Admin">
+                <ShieldCheck size={18} />
+              </Link>
+            ) : null}
             <Link href="/account" className="member-icon-link" aria-label="Account settings">
               <Settings size={18} />
             </Link>

@@ -124,14 +124,6 @@ export function ResourceLibrary({ resources, termNotes }: Props) {
                                 ) : null}
                               </span>
                             </Link>
-                            <div className="curriculum-resource-meta">
-                              {(resource.attachments ?? []).map((attachment) => (
-                                <span className="pill" key={attachment.id}>
-                                  <ResourceTypeIcon type={attachment.type} size={14} />
-                                  {attachment.name}
-                                </span>
-                              ))}
-                            </div>
                           </div>
                           {attachmentTypes.length ? (
                             <div className="curriculum-row-icons" aria-label="Lesson resources">

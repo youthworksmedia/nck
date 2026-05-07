@@ -20,7 +20,7 @@ export default function PricingPage() {
           <h1>Three annual tiers for different ministry sizes.</h1>
         </div>
         <p>
-          Every plan includes the full curriculum library, unlimited invited accounts, account management, order history, and downloadable invoices.
+          Every plan includes the full curriculum library, unlimited invited accounts, account management, and order history.
         </p>
       </div>
       <div className="three-up">
