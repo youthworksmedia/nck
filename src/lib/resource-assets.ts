@@ -57,6 +57,12 @@ export function getResourceFileContentType(fileName: string) {
       return "audio/mpeg";
     case "wav":
       return "audio/wav";
+    case "mp4":
+      return "video/mp4";
+    case "mov":
+      return "video/quicktime";
+    case "webm":
+      return "video/webm";
     case "zip":
       return "application/zip";
     default:

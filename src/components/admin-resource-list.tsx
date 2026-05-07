@@ -2,11 +2,16 @@
 
 import type { Route } from "next";
 import Link from "next/link";
-import { FileText, GripVertical, Music4, NotebookPen, Pencil, Save, Trash2 } from "lucide-react";
+import { FileText, Gamepad2, GripVertical, Music4, Pencil, Save, Trash2, Video } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 
-import { AdminAssetPicker } from "@/components/admin-asset-picker";
+import {
+  AdminLessonResourceFields,
+  attachmentsToDrafts,
+  emptyResourceDrafts,
+  type LessonResourceDraft
+} from "@/components/admin-lesson-resource-fields";
 import { AdminTermNoteEditor } from "@/components/admin-term-note-editor";
 import { WysiwygEditor } from "@/components/wysiwyg-editor";
 import { getTodayISO } from "@/lib/time";
@@ -65,13 +70,14 @@ function buildContentHref(
 
 export function AdminResourceList({
   resources,
-  files,
+  files: _files,
   activeYear,
   activeTerm = "Term 1",
   termNotes,
   basePath = "/content"
 }: Props) {
   const router = useRouter();
+  void _files;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -86,12 +92,7 @@ export function AdminResourceList({
     publishDate: "",
     expiryDate: "",
     status: "open" as "open" | "closed",
-    existingMusicPath: "",
-    existingWorksheetPath: "",
-    existingManualPath: "",
-    musicFile: null as File | null,
-    worksheetFile: null as File | null,
-    manualFile: null as File | null
+    resourceFiles: emptyResourceDrafts() as LessonResourceDraft[]
   });
 
   useEffect(() => {
@@ -160,12 +161,20 @@ export function AdminResourceList({
       formData.set("publishDate", draft.publishDate);
       formData.set("expiryDate", draft.expiryDate);
       formData.set("status", draft.status);
-      formData.set("existingMusicPath", draft.existingMusicPath);
-      formData.set("existingWorksheetPath", draft.existingWorksheetPath);
-      formData.set("existingManualPath", draft.existingManualPath);
-      if (draft.musicFile) formData.set("musicFile", draft.musicFile);
-      if (draft.worksheetFile) formData.set("worksheetFile", draft.worksheetFile);
-      if (draft.manualFile) formData.set("manualFile", draft.manualFile);
+      formData.set(
+        "resourceFiles",
+        JSON.stringify(
+          draft.resourceFiles.map(({ file: _file, ...entry }) => ({
+            ...entry,
+            name: entry.name.trim() || entry.fileName || "Resource"
+          }))
+        )
+      );
+      draft.resourceFiles.forEach((entry) => {
+        if (entry.file) {
+          formData.set(`resourceFile-${entry.id}`, entry.file);
+        }
+      });
 
       const response = await fetch(`/api/admin/resources/${resourceId}`, {
         method: "PATCH",
@@ -423,56 +432,12 @@ export function AdminResourceList({
                                 </select>
                               </div>
                             </div>
-                            <div className="three-up admin-form-grid">
-                              <AdminAssetPicker
-                                kind="manual"
-                                files={files}
-                                selectedPath={draft.existingManualPath}
-                                onSelectPath={(value) =>
-                                  setDraft((current) => ({ ...current, existingManualPath: value }))
-                                }
-                                uploadFile={draft.manualFile}
-                                onUploadFile={(file) =>
-                                  setDraft((current) => ({
-                                    ...current,
-                                    manualFile: file,
-                                    existingManualPath: file ? "" : current.existingManualPath
-                                  }))
-                                }
-                              />
-                              <AdminAssetPicker
-                                kind="worksheet"
-                                files={files}
-                                selectedPath={draft.existingWorksheetPath}
-                                onSelectPath={(value) =>
-                                  setDraft((current) => ({ ...current, existingWorksheetPath: value }))
-                                }
-                                uploadFile={draft.worksheetFile}
-                                onUploadFile={(file) =>
-                                  setDraft((current) => ({
-                                    ...current,
-                                    worksheetFile: file,
-                                    existingWorksheetPath: file ? "" : current.existingWorksheetPath
-                                  }))
-                                }
-                              />
-                              <AdminAssetPicker
-                                kind="music"
-                                files={files}
-                                selectedPath={draft.existingMusicPath}
-                                onSelectPath={(value) =>
-                                  setDraft((current) => ({ ...current, existingMusicPath: value }))
-                                }
-                                uploadFile={draft.musicFile}
-                                onUploadFile={(file) =>
-                                  setDraft((current) => ({
-                                    ...current,
-                                    musicFile: file,
-                                    existingMusicPath: file ? "" : current.existingMusicPath
-                                  }))
-                                }
-                              />
-                            </div>
+                            <AdminLessonResourceFields
+                              value={draft.resourceFiles}
+                              onChange={(resourceFiles) =>
+                                setDraft((current) => ({ ...current, resourceFiles }))
+                              }
+                            />
                             <WysiwygEditor
                               label="Content *"
                               value={draft.description}
@@ -531,9 +496,15 @@ export function AdminResourceList({
                                 </span>
                               </strong>
                               <div className="resource-meta">
-                                {resource.manualFilePath || resource.manualFileName ? <span className="pill"><NotebookPen size={14} /> Manual</span> : null}
-                                {resource.worksheetFilePath || resource.worksheetFileName ? <span className="pill"><FileText size={14} /> Worksheet</span> : null}
-                                {resource.musicFilePath || resource.musicFileName ? <span className="pill"><Music4 size={14} /> Music</span> : null}
+                                {(resource.attachments ?? []).map((attachment) => (
+                                  <span className="pill" key={attachment.id}>
+                                    {attachment.type === "pdf" ? <FileText size={14} /> : null}
+                                    {attachment.type === "game" ? <Gamepad2 size={14} /> : null}
+                                    {attachment.type === "music" ? <Music4 size={14} /> : null}
+                                    {attachment.type === "video" ? <Video size={14} /> : null}
+                                    {attachment.name}
+                                  </span>
+                                ))}
                               </div>
                             </div>
                             <div className="button-row button-row-tight">
@@ -553,12 +524,9 @@ export function AdminResourceList({
                                     publishDate: resource.publishDate ?? "",
                                     expiryDate: resource.expiryDate ?? "",
                                     status: resource.status ?? "open",
-                                    existingMusicPath: resource.musicFilePath ?? "",
-                                    existingWorksheetPath: resource.worksheetFilePath ?? "",
-                                    existingManualPath: resource.manualFilePath ?? "",
-                                    musicFile: null,
-                                    worksheetFile: null,
-                                    manualFile: null
+                                    resourceFiles: resource.attachments?.length
+                                      ? attachmentsToDrafts(resource.attachments)
+                                      : emptyResourceDrafts()
                                   });
                                 }}
                               >

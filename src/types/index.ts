@@ -1,5 +1,15 @@
 import type { PlanTier } from "@/lib/plans";
 
+export type LessonResourceType = "pdf" | "game" | "music" | "video";
+
+export type LessonResourceAttachment = {
+  id: string;
+  type: LessonResourceType;
+  name: string;
+  filePath: string;
+  fileName: string;
+};
+
 export type Resource = {
   id: string;
   title: string;
@@ -17,6 +27,7 @@ export type Resource = {
   musicFileName?: string;
   worksheetFileName?: string;
   manualFileName?: string;
+  attachments?: LessonResourceAttachment[];
   publishDate?: string | null;
   expiryDate?: string | null;
   status?: "open" | "closed";

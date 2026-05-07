@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpenText, ChevronDown, Download, FileText, Music4, NotebookPen } from "lucide-react";
+import { BookOpenText, ChevronDown, FileText, Gamepad2, Music4, Video } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import type { CurriculumTermNote, Resource } from "@/types";
+import type { CurriculumTermNote, LessonResourceType, Resource } from "@/types";
 
 const yearTabs = ["Year A", "Year B", "Year C"] as const;
 const termOrder = ["Term 1", "Term 2", "Term 3", "Term 4"] as const;
@@ -17,12 +17,6 @@ type Props = {
 export function ResourceLibrary({ resources, termNotes }: Props) {
   const [selectedYear, setSelectedYear] = useState<(typeof yearTabs)[number]>("Year A");
   const [selectedTerm, setSelectedTerm] = useState<(typeof termOrder)[number]>("Term 1");
-  const [downloadKind, setDownloadKind] = useState<"manual" | "workbook" | null>(null);
-  const [customSelection, setCustomSelection] = useState<{
-    year: (typeof yearTabs)[number];
-    term: (typeof termOrder)[number];
-    ids: string[];
-  } | null>(null);
 
   const resourcesByTerm = useMemo(
     () =>
@@ -44,21 +38,6 @@ export function ResourceLibrary({ resources, termNotes }: Props) {
       termNotes.find((note) => note.yearCycle === selectedYear && note.term === selectedTerm)?.content ?? "",
     [termNotes, selectedTerm, selectedYear]
   );
-
-  async function downloadCustomPack(kind: "manual" | "workbook", year: string, term: string, ids: string[]) {
-    setDownloadKind(kind);
-    const href = `/api/resources/custom-pack?kind=${encodeURIComponent(kind)}&year=${encodeURIComponent(year)}&term=${encodeURIComponent(term)}&ids=${encodeURIComponent(ids.join(","))}`;
-    const link = document.createElement("a");
-
-    link.href = href;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-
-    window.setTimeout(() => {
-      setDownloadKind((current) => (current === kind ? null : current));
-    }, 3000);
-  }
 
   return (
     <>
@@ -126,60 +105,13 @@ export function ResourceLibrary({ resources, termNotes }: Props) {
                     ) : null}
                     {group.entries.length ? (
                     <div className="curriculum-list">
-                      {group.entries.map((resource) => (
+                      {group.entries.map((resource) => {
+                        const attachmentTypes = [
+                          ...new Set((resource.attachments ?? []).map((attachment) => attachment.type))
+                        ];
+
+                        return (
                         <article key={resource.id} className="curriculum-row">
-                          <label className="curriculum-row-select">
-                            {(() => {
-                              const isSelectable = Boolean(
-                                resource.manualFilePath ||
-                                  resource.manualFileName ||
-                                  resource.worksheetFilePath ||
-                                  resource.worksheetFileName
-                              );
-
-                              return (
-                            <input
-                              type="checkbox"
-                              disabled={!isSelectable}
-                              checked={Boolean(
-                                isSelectable &&
-                                customSelection &&
-                                  customSelection.year === selectedYear &&
-                                  customSelection.term === group.term &&
-                                  customSelection.ids.includes(resource.id)
-                              )}
-                              onChange={(event) => {
-                                setCustomSelection((current) => {
-                                  const isSameGroup =
-                                    current &&
-                                    current.year === selectedYear &&
-                                    current.term === group.term;
-                                  const currentIds = isSameGroup ? current.ids : [];
-
-                                  const nextIds = event.target.checked
-                                    ? [...currentIds, resource.id]
-                                    : currentIds.filter((id) => id !== resource.id);
-
-                                  if (!nextIds.length) {
-                                    return null;
-                                  }
-
-                                  return {
-                                    year: selectedYear,
-                                    term: group.term,
-                                    ids: nextIds
-                                  };
-                                });
-                              }}
-                              aria-label={
-                                isSelectable
-                                  ? `Select ${resource.title} for a custom pack`
-                                  : `No manual or worksheet available for ${resource.title}`
-                              }
-                            />
-                              );
-                            })()}
-                          </label>
                           <div className="curriculum-row-copy">
                             <Link href={`/resources/${resource.id}`} className="curriculum-row-title">
                               <span>
@@ -193,66 +125,32 @@ export function ResourceLibrary({ resources, termNotes }: Props) {
                               </span>
                             </Link>
                             <div className="curriculum-resource-meta">
-                              {resource.manualFilePath || resource.manualFileName ? (
-                                <span className="pill">
-                                  <NotebookPen size={14} /> Manual
+                              {(resource.attachments ?? []).map((attachment) => (
+                                <span className="pill" key={attachment.id}>
+                                  <ResourceTypeIcon type={attachment.type} size={14} />
+                                  {attachment.name}
                                 </span>
-                              ) : null}
-                              {resource.worksheetFilePath || resource.worksheetFileName ? (
-                                <span className="pill">
-                                  <FileText size={14} /> Worksheet
-                                </span>
-                              ) : null}
-                              {resource.musicFilePath || resource.musicFileName ? (
-                                <span className="pill">
-                                  <Music4 size={14} /> Music
-                                </span>
-                              ) : null}
+                              ))}
                             </div>
                           </div>
+                          {attachmentTypes.length ? (
+                            <div className="curriculum-row-icons" aria-label="Lesson resources">
+                              {attachmentTypes.map((type) => (
+                                <span className="curriculum-row-icon" key={type} title={getResourceTypeLabel(type)}>
+                                  <ResourceTypeIcon type={type} size={17} />
+                                </span>
+                              ))}
+                            </div>
+                          ) : null}
                         </article>
-                      ))}
+                        );
+                      })}
                     </div>
                     ) : (
                       <p className="resource-empty">
                         No curriculum entries have been added for {selectedYear} {selectedTerm} yet.
                       </p>
                     )}
-                    {customSelection &&
-                    customSelection.year === selectedYear &&
-                    customSelection.term === group.term &&
-                    customSelection.ids.length ? (
-                      <div className="curriculum-custom-pack">
-                        <p>
-                          {customSelection.ids.length} lesson{customSelection.ids.length === 1 ? "" : "s"} selected.
-                          Create your own customised lesson manual and worksheet for the term.
-                        </p>
-                        <div className="button-row">
-                          <button
-                            type="button"
-                            className="button button-primary"
-                            disabled={downloadKind !== null}
-                            onClick={() =>
-                              downloadCustomPack("manual", selectedYear, group.term, customSelection.ids)
-                            }
-                          >
-                            <Download size={16} />
-                            <span>{downloadKind === "manual" ? "Manuals (PDF)..." : "Manuals (PDF)"}</span>
-                          </button>
-                          <button
-                            type="button"
-                            className="button button-primary"
-                            disabled={downloadKind !== null}
-                            onClick={() =>
-                              downloadCustomPack("workbook", selectedYear, group.term, customSelection.ids)
-                            }
-                          >
-                            <Download size={16} />
-                            <span>{downloadKind === "workbook" ? "Worksheets (PDF)..." : "Worksheets (PDF)"}</span>
-                          </button>
-                        </div>
-                      </div>
-                    ) : null}
                   </section>
                 ) : null
               )}
@@ -266,4 +164,34 @@ export function ResourceLibrary({ resources, termNotes }: Props) {
       </section>
     </>
   );
+}
+
+function getResourceTypeLabel(type: LessonResourceType) {
+  switch (type) {
+    case "game":
+      return "Game";
+    case "music":
+      return "Music";
+    case "video":
+      return "Video";
+    case "pdf":
+    default:
+      return "PDF";
+  }
+}
+
+function ResourceTypeIcon({ type, size }: { type: LessonResourceType; size: number }) {
+  if (type === "game") {
+    return <Gamepad2 size={size} />;
+  }
+
+  if (type === "music") {
+    return <Music4 size={size} />;
+  }
+
+  if (type === "video") {
+    return <Video size={size} />;
+  }
+
+  return <FileText size={size} />;
 }

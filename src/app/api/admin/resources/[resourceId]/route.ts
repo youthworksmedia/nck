@@ -3,7 +3,14 @@ import { z } from "zod";
 
 import { getDisplayFileName, removeStoredResourceFile, saveUploadedResourceFile } from "@/lib/resource-assets";
 import { isCurrentUserSuperAdmin } from "@/lib/admin-access";
+import {
+  parseLessonResourceFiles,
+  normalizeLessonResourceType,
+  serializeLessonResourceFiles,
+  storageKindForLessonResourceType
+} from "@/lib/lesson-resource-files";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import type { LessonResourceAttachment } from "@/types";
 
 export const runtime = "nodejs";
 
@@ -34,6 +41,53 @@ type RouteContext = {
     resourceId: string;
   }>;
 };
+
+async function getResourceFiles(formData: FormData): Promise<LessonResourceAttachment[]> {
+  let rawEntries: Array<Record<string, unknown>> = [];
+
+  try {
+    const parsed = JSON.parse(String(formData.get("resourceFiles") ?? "[]")) as unknown;
+    rawEntries = Array.isArray(parsed) ? (parsed as Array<Record<string, unknown>>) : [];
+  } catch {
+    rawEntries = [];
+  }
+
+  const files: LessonResourceAttachment[] = [];
+
+  for (const rawEntry of rawEntries) {
+    const id = typeof rawEntry.id === "string" && rawEntry.id ? rawEntry.id : crypto.randomUUID();
+    const type = normalizeLessonResourceType(rawEntry.type);
+    const upload = formData.get(`resourceFile-${id}`);
+    const saved =
+      upload instanceof File && upload.size
+        ? await saveUploadedResourceFile(upload, storageKindForLessonResourceType(type))
+        : null;
+    const filePath =
+      saved?.path ||
+      (typeof rawEntry.filePath === "string" ? rawEntry.filePath.trim() : "") ||
+      "";
+
+    if (!filePath) {
+      continue;
+    }
+
+    const fileName =
+      saved?.name ||
+      (typeof rawEntry.fileName === "string" ? rawEntry.fileName.trim() : "") ||
+      getDisplayFileName(filePath);
+    const name = (typeof rawEntry.name === "string" ? rawEntry.name.trim() : "") || fileName || "Resource";
+
+    files.push({
+      id,
+      type,
+      name,
+      filePath,
+      fileName
+    });
+  }
+
+  return files;
+}
 
 export async function PATCH(request: Request, context: RouteContext) {
   const isAuthenticated = await isCurrentUserSuperAdmin();
@@ -80,22 +134,10 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ message: "Lesson not found." }, { status: 404 });
   }
 
-  const musicFile = formData.get("musicFile");
-  const worksheetFile = formData.get("worksheetFile");
-  const manualFile = formData.get("manualFile");
-  const existingMusicPath = String(formData.get("existingMusicPath") ?? "").trim();
-  const existingWorksheetPath = String(formData.get("existingWorksheetPath") ?? "").trim();
-  const existingManualPath = String(formData.get("existingManualPath") ?? "").trim();
-
-  const savedMusic =
-    musicFile instanceof File && musicFile.size ? await saveUploadedResourceFile(musicFile, "music") : null;
-  const savedWorksheet =
-    worksheetFile instanceof File && worksheetFile.size ? await saveUploadedResourceFile(worksheetFile, "worksheet") : null;
-  const savedManual =
-    manualFile instanceof File && manualFile.size ? await saveUploadedResourceFile(manualFile, "manual") : null;
-  const nextMusicPath = savedMusic?.path || existingMusicPath || null;
-  const nextWorksheetPath = savedWorksheet?.path || existingWorksheetPath || null;
-  const nextManualPath = savedManual?.path || existingManualPath || null;
+  const previousResourceFiles = parseLessonResourceFiles(existingResource.file_url, existingResource);
+  const resourceFiles = await getResourceFiles(formData);
+  const firstMusic = resourceFiles.find((entry) => entry.type === "music") ?? null;
+  const firstDocument = resourceFiles.find((entry) => entry.type !== "music") ?? null;
   const movedTerm =
     existingResource.year_cycle !== payload.data.yearCycle || existingResource.term !== payload.data.term;
   let hasLessonNumberColumn = true;
@@ -142,13 +184,13 @@ export async function PATCH(request: Request, context: RouteContext) {
     term: payload.data.term,
     category: "Curriculum",
     format: "",
-    music_file_path: nextMusicPath,
-    music_file_name: savedMusic?.name ?? (nextMusicPath ? getDisplayFileName(nextMusicPath) : null),
-    worksheet_file_path: nextWorksheetPath,
-    worksheet_file_name:
-      savedWorksheet?.name ?? (nextWorksheetPath ? getDisplayFileName(nextWorksheetPath) : null),
-    manual_file_path: nextManualPath,
-    manual_file_name: savedManual?.name ?? (nextManualPath ? getDisplayFileName(nextManualPath) : null),
+    file_url: serializeLessonResourceFiles(resourceFiles),
+    music_file_path: firstMusic?.filePath ?? null,
+    music_file_name: firstMusic?.fileName ?? null,
+    worksheet_file_path: null,
+    worksheet_file_name: null,
+    manual_file_path: firstDocument?.filePath ?? null,
+    manual_file_name: firstDocument?.fileName ?? null,
     publish_date: payload.data.publishDate,
     expiry_date: payload.data.expiryDate || null,
     published: payload.data.status === "open"
@@ -181,15 +223,12 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ message: error.message }, { status: 400 });
   }
 
-  if (savedMusic) {
-    await removeStoredResourceFile(existingResource.music_file_path);
-  }
-  if (savedWorksheet) {
-    await removeStoredResourceFile(existingResource.worksheet_file_path);
-  }
-  if (savedManual) {
-    await removeStoredResourceFile(existingResource.manual_file_path);
-  }
+  const retainedPaths = new Set(resourceFiles.map((entry) => entry.filePath));
+  await Promise.all(
+    previousResourceFiles
+      .filter((entry) => !retainedPaths.has(entry.filePath))
+      .map((entry) => removeStoredResourceFile(entry.filePath))
+  );
 
   return NextResponse.json({ message: "Lesson updated." });
 }
@@ -226,9 +265,13 @@ export async function DELETE(_request: Request, context: RouteContext) {
   }
 
   if (existingResource) {
-    await removeStoredResourceFile(existingResource.music_file_path);
-    await removeStoredResourceFile(existingResource.worksheet_file_path);
-    await removeStoredResourceFile(existingResource.manual_file_path);
+    const paths = new Set([
+      ...parseLessonResourceFiles(existingResource.file_url, existingResource).map((entry) => entry.filePath),
+      existingResource.music_file_path,
+      existingResource.worksheet_file_path,
+      existingResource.manual_file_path
+    ]);
+    await Promise.all([...paths].map((path) => removeStoredResourceFile(path)));
   }
 
   return NextResponse.json({ message: "Lesson deleted." });

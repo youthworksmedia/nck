@@ -979,25 +979,11 @@ button {
 
 .curriculum-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 1rem;
   align-items: start;
   padding: 1rem 0;
   border-bottom: 1px solid var(--line);
-}
-
-.curriculum-row-select {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  align-self: start;
-  padding-top: 0.2rem;
-}
-
-.curriculum-row-select input {
-  width: 1.05rem;
-  height: 1.05rem;
-  cursor: pointer;
 }
 
 .curriculum-row-title {
@@ -1028,27 +1014,24 @@ button {
   gap: 3px;
 }
 
-.curriculum-custom-pack {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(21, 67, 126, 0.12);
-  display: grid;
-  gap: 0.75rem;
+.curriculum-row-icons {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: flex-end;
 }
 
-.curriculum-custom-pack p {
-  margin: 0;
-  color: #184b8a;
-  font-weight: 700;
-}
-
-.curriculum-custom-pack .button-primary {
-  background:
-    linear-gradient(135deg, #4bd4ff 0%, #2f92ff 42%, #2e67ff 100%),
-    linear-gradient(35deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 48%);
-  border-color: rgba(208, 239, 255, 0.46);
-  color: white;
-  box-shadow: 0 14px 24px rgba(47, 122, 255, 0.24);
+.curriculum-row-icon,
+.resource-entry-file-icon,
+.admin-resource-file-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 5px;
+  color: #124b8f;
+  background: rgba(18, 75, 143, 0.1);
 }
 
 .custom-pack-panel {
@@ -1445,13 +1428,61 @@ button {
   margin-top: 34px;
 }
 
-.resource-download-row .button-primary {
+.resource-entry-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.34fr);
+  gap: 1.4rem;
+  align-items: start;
+}
+
+.resource-entry-files {
+  border: 1px solid rgba(21, 67, 126, 0.12);
+  border-radius: 6px;
+  padding: 1rem;
+  background: rgba(247, 251, 255, 0.86);
+  position: sticky;
+  top: 1rem;
+}
+
+.resource-entry-files h2 {
+  margin: 0 0 0.8rem;
+  font-size: 1.05rem;
+}
+
+.resource-entry-file-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.resource-entry-file-card {
+  display: grid;
+  gap: 0.7rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(21, 67, 126, 0.1);
+}
+
+.resource-entry-file-card:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.resource-entry-file-copy {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-weight: 800;
+  color: #163f70;
+}
+
+.resource-entry-download-button {
   background:
     linear-gradient(135deg, #4fd2ff 0%, #2c8fff 48%, #285ce9 100%),
     linear-gradient(35deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 48%);
   border-color: rgba(205, 234, 255, 0.46);
   box-shadow: 0 14px 24px rgba(35, 108, 228, 0.22);
   color: white;
+  width: 100%;
+  justify-content: center;
 }
 
 .dashboard-grid {
@@ -3825,6 +3856,53 @@ button {
   flex: 0 0 auto;
 }
 
+.admin-resource-files-editor {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+  border: 1px solid rgba(16, 61, 116, 0.12);
+  border-radius: 6px;
+  background: rgba(248, 252, 255, 0.82);
+}
+
+.admin-resource-files-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-resource-files-head h3,
+.admin-resource-files-head p {
+  margin: 0;
+}
+
+.admin-resource-files-head p,
+.admin-resource-current-file {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.admin-resource-file-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.admin-resource-file-row {
+  display: grid;
+  grid-template-columns: auto minmax(10rem, 1fr) minmax(8rem, 0.45fr) minmax(12rem, 1fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.admin-resource-current-file {
+  margin: 0.35rem 0 0;
+}
+
+.admin-resource-file-remove {
+  align-self: end;
+}
+
 .asset-library-modal {
   width: min(42rem, 100%);
 }
@@ -4488,6 +4566,19 @@ button {
   .curriculum-row {
     grid-template-columns: 1fr;
     align-items: start;
+  }
+
+  .curriculum-row-icons {
+    justify-content: flex-start;
+  }
+
+  .resource-entry-layout,
+  .admin-resource-file-row {
+    grid-template-columns: 1fr;
+  }
+
+  .resource-entry-files {
+    position: static;
   }
 
   .footer,

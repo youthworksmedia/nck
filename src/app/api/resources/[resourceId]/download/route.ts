@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { parseLessonResourceFiles } from "@/lib/lesson-resource-files";
 import { downloadStoredResourceFile } from "@/lib/resource-assets";
 import { getCurrentUser, getMembershipSnapshot } from "@/lib/portal";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -19,9 +20,9 @@ const assetColumns = {
 } as const;
 
 export async function GET(request: Request, context: RouteContext) {
-  const asset = new URL(request.url).searchParams.get("asset") as keyof typeof assetColumns | null;
+  const asset = new URL(request.url).searchParams.get("asset");
 
-  if (!asset || !(asset in assetColumns)) {
+  if (!asset) {
     return NextResponse.json({ message: "Choose a valid download asset." }, { status: 400 });
   }
 
@@ -38,11 +39,12 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   const { resourceId } = await context.params;
-  const { path: pathColumn, name: nameColumn } = assetColumns[asset];
 
   const { data: resource, error } = await adminSupabase
     .from("resources")
-    .select(`id, ${pathColumn}, ${nameColumn}, published`)
+    .select(
+      "id, file_url, music_file_path, music_file_name, worksheet_file_path, worksheet_file_name, manual_file_path, manual_file_name, published"
+    )
     .eq("id", resourceId)
     .eq("published", true)
     .limit(1)
@@ -52,8 +54,18 @@ export async function GET(request: Request, context: RouteContext) {
     return NextResponse.json({ message: "Resource not found." }, { status: 404 });
   }
 
-  const filePath = resource[pathColumn as keyof typeof resource] as string | null;
-  const fileName = (resource[nameColumn as keyof typeof resource] as string | null) ?? `${asset}.bin`;
+  let filePath: string | null = null;
+  let fileName = `${asset}.bin`;
+
+  if (asset in assetColumns) {
+    const { path: pathColumn, name: nameColumn } = assetColumns[asset as keyof typeof assetColumns];
+    filePath = resource[pathColumn as keyof typeof resource] as string | null;
+    fileName = (resource[nameColumn as keyof typeof resource] as string | null) ?? fileName;
+  } else {
+    const attachment = parseLessonResourceFiles(resource.file_url, resource).find((entry) => entry.id === asset);
+    filePath = attachment?.filePath ?? null;
+    fileName = attachment?.fileName ?? attachment?.name ?? fileName;
+  }
 
   if (!filePath) {
     return NextResponse.json({ message: "This file is not available yet." }, { status: 404 });

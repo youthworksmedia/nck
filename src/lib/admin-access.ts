@@ -1,4 +1,5 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { parseLessonResourceFiles } from "@/lib/lesson-resource-files";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatShortDate } from "@/lib/time";
 import type {
@@ -94,6 +95,7 @@ export async function getAdminResources(): Promise<Resource[]> {
     musicFileName: resource.music_file_name ?? "",
     worksheetFileName: resource.worksheet_file_name ?? "",
     manualFileName: resource.manual_file_name ?? "",
+    attachments: parseLessonResourceFiles(resource.file_url, resource),
     publishDate: resource.publish_date,
     expiryDate: resource.expiry_date,
     status: resource.published ? "open" : "closed"

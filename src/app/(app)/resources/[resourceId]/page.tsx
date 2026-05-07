@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, FileText, Music4, NotebookPen } from "lucide-react";
+import { ArrowLeft, Download, FileText, Gamepad2, Music4, Video } from "lucide-react";
 
 import { PrintResourceButton } from "@/components/print-resource-button";
 import { formatLessonContentHtml } from "@/lib/resource-content";
 import { getResources } from "@/lib/portal";
+import type { LessonResourceType } from "@/types";
 
 type Props = {
   params: Promise<{
@@ -69,30 +70,38 @@ export default async function ResourceEntryPage({ params }: Props) {
             {resource.scripture ? <p className="resource-entry-scripture">{resource.scripture}</p> : null}
           </div>
         </div>
-        <div className="button-row resource-download-row">
-          {resource.manualFilePath ? (
-            <a href={`/api/resources/${resource.id}/download?asset=manual`} className="button button-primary">
-              <NotebookPen size={16} />
-              <span>Manual</span>
-            </a>
-          ) : null}
-          {resource.worksheetFilePath ? (
-            <a href={`/api/resources/${resource.id}/download?asset=worksheet`} className="button button-primary">
-              <FileText size={16} />
-              <span>Worksheet</span>
-            </a>
-          ) : null}
-          {resource.musicFilePath ? (
-            <a href={`/api/resources/${resource.id}/download?asset=music`} className="button button-primary">
-              <Music4 size={16} />
-              <span>Music</span>
-            </a>
-          ) : null}
+        <div className="resource-entry-layout">
+          <div
+            className="resource-html"
+            dangerouslySetInnerHTML={{ __html: formatLessonContentHtml(resource.description) }}
+          />
+          <aside className="resource-entry-files" aria-label="Lesson resources">
+            <h2>Resources</h2>
+            {resource.attachments?.length ? (
+              <div className="resource-entry-file-list">
+                {resource.attachments.map((attachment) => (
+                  <div className="resource-entry-file-card" key={attachment.id}>
+                    <div className="resource-entry-file-copy">
+                      <span className="resource-entry-file-icon" aria-hidden="true">
+                        <ResourceTypeIcon type={attachment.type} size={18} />
+                      </span>
+                      <span>{attachment.name}</span>
+                    </div>
+                    <a
+                      href={`/api/resources/${resource.id}/download?asset=${encodeURIComponent(attachment.id)}`}
+                      className="button button-primary resource-entry-download-button"
+                    >
+                      <Download size={16} />
+                      <span>Download</span>
+                    </a>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p>No files have been added to this lesson yet.</p>
+            )}
+          </aside>
         </div>
-        <div
-          className="resource-html"
-          dangerouslySetInnerHTML={{ __html: formatLessonContentHtml(resource.description) }}
-        />
         <div className="resource-entry-back resource-entry-actions-bottom">
           <Link href="/resources" className="button button-secondary">
             <ArrowLeft size={16} />
@@ -103,4 +112,20 @@ export default async function ResourceEntryPage({ params }: Props) {
       </section>
     </main>
   );
+}
+
+function ResourceTypeIcon({ type, size }: { type: LessonResourceType; size: number }) {
+  if (type === "game") {
+    return <Gamepad2 size={size} />;
+  }
+
+  if (type === "music") {
+    return <Music4 size={size} />;
+  }
+
+  if (type === "video") {
+    return <Video size={size} />;
+  }
+
+  return <FileText size={size} />;
 }

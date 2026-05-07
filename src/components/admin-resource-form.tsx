@@ -5,7 +5,11 @@ import { Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
-import { AdminAssetPicker } from "@/components/admin-asset-picker";
+import {
+  AdminLessonResourceFields,
+  emptyResourceDrafts,
+  type LessonResourceDraft
+} from "@/components/admin-lesson-resource-fields";
 import { WysiwygEditor } from "@/components/wysiwyg-editor";
 import type { ResourceLibraryFile } from "@/lib/resource-assets";
 import { getTodayISO } from "@/lib/time";
@@ -47,8 +51,9 @@ function buildContentHref(
   return (query ? `${basePath}?${query}` : basePath) as Route;
 }
 
-export function AdminResourceForm({ files, initialYearCycle, initialTerm, basePath = "/content" }: Props) {
+export function AdminResourceForm({ files: _files, initialYearCycle, initialTerm, basePath = "/content" }: Props) {
   const router = useRouter();
+  void _files;
   const today = getTodayISO();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -58,12 +63,7 @@ export function AdminResourceForm({ files, initialYearCycle, initialTerm, basePa
   const [publishDate, setPublishDate] = useState(today);
   const [expiryDate, setExpiryDate] = useState("");
   const [status, setStatus] = useState<"open" | "closed">("open");
-  const [existingMusicPath, setExistingMusicPath] = useState("");
-  const [existingWorksheetPath, setExistingWorksheetPath] = useState("");
-  const [existingManualPath, setExistingManualPath] = useState("");
-  const [musicFile, setMusicFile] = useState<File | null>(null);
-  const [worksheetFile, setWorksheetFile] = useState<File | null>(null);
-  const [manualFile, setManualFile] = useState<File | null>(null);
+  const [resourceFiles, setResourceFiles] = useState<LessonResourceDraft[]>(() => emptyResourceDrafts());
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -80,12 +80,7 @@ export function AdminResourceForm({ files, initialYearCycle, initialTerm, basePa
     setPublishDate(freshToday);
     setExpiryDate("");
     setStatus("open");
-    setExistingMusicPath("");
-    setExistingWorksheetPath("");
-    setExistingManualPath("");
-    setMusicFile(null);
-    setWorksheetFile(null);
-    setManualFile(null);
+    setResourceFiles(emptyResourceDrafts());
   }, [initialYearCycle, initialTerm]);
 
   return (
@@ -108,13 +103,21 @@ export function AdminResourceForm({ files, initialYearCycle, initialTerm, basePa
           formData.set("publishDate", publishDate);
           formData.set("expiryDate", expiryDate);
           formData.set("status", status);
-          formData.set("existingMusicPath", existingMusicPath);
-          formData.set("existingWorksheetPath", existingWorksheetPath);
-          formData.set("existingManualPath", existingManualPath);
+          formData.set(
+            "resourceFiles",
+            JSON.stringify(
+              resourceFiles.map(({ file: _file, ...entry }) => ({
+                ...entry,
+                name: entry.name.trim() || entry.fileName || "Resource"
+              }))
+            )
+          );
 
-          if (musicFile) formData.set("musicFile", musicFile);
-          if (worksheetFile) formData.set("worksheetFile", worksheetFile);
-          if (manualFile) formData.set("manualFile", manualFile);
+          resourceFiles.forEach((entry) => {
+            if (entry.file) {
+              formData.set(`resourceFile-${entry.id}`, entry.file);
+            }
+          });
 
           const response = await fetch("/api/admin/resources", {
             method: "POST",
@@ -136,12 +139,7 @@ export function AdminResourceForm({ files, initialYearCycle, initialTerm, basePa
           setPublishDate(today);
           setExpiryDate("");
           setStatus("open");
-          setExistingMusicPath("");
-          setExistingWorksheetPath("");
-          setExistingManualPath("");
-          setMusicFile(null);
-          setWorksheetFile(null);
-          setManualFile(null);
+          setResourceFiles(emptyResourceDrafts());
           form.reset();
           if (shouldAddMore) {
             router.push(buildContentHref(basePath, { tab: "add", year: yearCycle, term }));
@@ -251,32 +249,7 @@ export function AdminResourceForm({ files, initialYearCycle, initialTerm, basePa
           </select>
         </div>
       </div>
-      <div className="three-up admin-form-grid">
-        <AdminAssetPicker
-          kind="manual"
-          files={files}
-          selectedPath={existingManualPath}
-          onSelectPath={setExistingManualPath}
-          uploadFile={manualFile}
-          onUploadFile={setManualFile}
-        />
-        <AdminAssetPicker
-          kind="worksheet"
-          files={files}
-          selectedPath={existingWorksheetPath}
-          onSelectPath={setExistingWorksheetPath}
-          uploadFile={worksheetFile}
-          onUploadFile={setWorksheetFile}
-        />
-        <AdminAssetPicker
-          kind="music"
-          files={files}
-          selectedPath={existingMusicPath}
-          onSelectPath={setExistingMusicPath}
-          uploadFile={musicFile}
-          onUploadFile={setMusicFile}
-        />
-      </div>
+      <AdminLessonResourceFields value={resourceFiles} onChange={setResourceFiles} />
       <WysiwygEditor
         label="Content *"
         value={description}
