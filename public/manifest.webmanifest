@@ -4,17 +4,5 @@
   "start_url": "/weather",
   "display": "standalone",
   "background_color": "#14365d",
-  "theme_color": "#14365d",
-  "icons": [
-    {
-      "src": "/gigk-logo.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/gigk-logo.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
-  ]
+  "theme_color": "#14365d"
 }
