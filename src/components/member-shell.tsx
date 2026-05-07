@@ -28,7 +28,8 @@ export async function MemberShell({ children }: { children: React.ReactNode }) {
         <header className="member-topbar">
           <div className="member-topbar-identity">
             <Link href="/" className="member-topbar-brand" aria-label="New Creation Kids homepage">
-              New Creation Kids
+              <span className="member-topbar-brand-mark" aria-hidden="true">NCK</span>
+              <span>New Creation Kids</span>
             </Link>
             <div>
               <span className="member-topbar-kicker">Signed in</span>

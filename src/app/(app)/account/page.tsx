@@ -3,17 +3,13 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Blocks,
-  LibraryBig,
   BadgeDollarSign,
   Users,
   BookOpenText,
   CalendarDays,
   Crown,
   StarIcon,
-  Check,
   CircleCheckBig,
-  X,
-  ReceiptText,
 } from "lucide-react";
 
 import { DeleteMemberButton } from "@/components/delete-member-button";
@@ -128,8 +124,6 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   const canUseLessonBuilder = planAllowsLessonBuilder(membership.planTier);
   const additionalTeamMembersAdded = teamMembers.filter((member) => member.role === "member").length;
   const remainingAdditionalTeamMembers = Number.POSITIVE_INFINITY;
-  const renewNeedsAttention =
-    membership.subscriptionStatus !== "active" || daysRemaining <= 92;
   const getInitials = (name: string) =>
     name
       .trim()
@@ -239,16 +233,6 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                 <small>{memberCount} invited accounts</small>
               </span>
             </a>
-            <Link
-              href="/resources"
-              className={`button button-primary${renewNeedsAttention ? " account-renew-button-alert" : ""}`}
-            >
-              <CalendarDays size={18} />
-              <span className="account-dashboard-action-copy">
-                <strong>This Sunday</strong>
-                <small>Plan your session</small>
-              </span>
-            </Link>
           </div>
         </section>
       ) : (
@@ -289,13 +273,6 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                 <small>{membership.churchName}</small>
               </span>
             </a>
-            <Link href="/resources" className="button button-primary">
-              <CalendarDays size={18} />
-              <span className="account-dashboard-action-copy">
-                <strong>This Sunday</strong>
-                <small>Plan your session</small>
-              </span>
-            </Link>
           </div>
         </section>
       )}
@@ -379,13 +356,6 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
               })}
             </div>
             <div className="account-team-add">
-              <div className="account-team-add-copy-wrap">
-                <p className="account-team-add-copy">
-                  <span>
-                    {memberCount} team members. Invited accounts are unlimited.
-                  </span>
-                </p>
-              </div>
               <InviteTeamForm remainingAdditionalTeamMembers={remainingAdditionalTeamMembers} />
             </div>
           </article>
@@ -461,24 +431,15 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                   <strong>{formatLongDateWithOrdinal(membership.renewalDate)}</strong>
                   <span className="account-overview-note">({daysRemaining} days)</span>
                 </div>
-                <div className="account-overview-tile">
-                  <span className="pill">Lesson tools</span>
+                <Link href={`/subscribe?tier=${membership.planTier}`} className="account-overview-tile account-overview-tile-link">
+                  <span className="pill">Plan</span>
                   <div className="account-overview-status-row">
                     <strong className="account-overview-status-line">
-                      <span
-                        className={`account-overview-status-icon ${
-                          canUseLessonBuilder
-                            ? "account-overview-status-icon-included"
-                            : "account-overview-status-icon-excluded"
-                        }`}
-                        aria-hidden="true"
-                      >
-                        {canUseLessonBuilder ? <Check size={14} /> : <X size={14} />}
-                      </span>
-                      <span>{canUseLessonBuilder ? "Included" : "Library resources"}</span>
+                      <BadgeDollarSign size={18} />
+                      <span>Renew plan</span>
                     </strong>
                   </div>
-                </div>
+                </Link>
                 <div className="account-overview-tile">
                   <span className="pill">Status</span>
                   <div className="account-overview-status-row">
@@ -493,27 +454,6 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                     </strong>
                   </div>
                 </div>
-              </div>
-              <div className="account-overview-actions">
-                {purchaseOrders[0] ? (
-                  <span className="account-overview-action">
-                    <ReceiptText size={16} />
-                    <span>Latest order</span>
-                  </span>
-                ) : (
-                  <span className="account-overview-action">
-                    <ReceiptText size={16} />
-                    <span>No order yet</span>
-                  </span>
-                )}
-                <Link href={`/subscribe?tier=${membership.planTier}`} className="account-overview-action">
-                  <BadgeDollarSign size={16} />
-                  <span>Update plan</span>
-                </Link>
-                <Link href="/resources" className="account-overview-action">
-                  <BookOpenText size={16} />
-                  <span>View details</span>
-                </Link>
               </div>
             </>
           ) : (
@@ -547,24 +487,15 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                     ({membership.subscriptionStatus === "active" ? `${daysRemaining} days` : "Inactive"})
                   </span>
                 </div>
-                <div className="account-overview-tile">
-                  <span className="pill">Lesson tools</span>
+                <Link href={`/subscribe?tier=${membership.planTier}`} className="account-overview-tile account-overview-tile-link">
+                  <span className="pill">Plan</span>
                   <div className="account-overview-status-row">
                     <strong className="account-overview-status-line">
-                      <span
-                        className={`account-overview-status-icon ${
-                          canUseLessonBuilder
-                            ? "account-overview-status-icon-included"
-                            : "account-overview-status-icon-excluded"
-                        }`}
-                        aria-hidden="true"
-                      >
-                        {canUseLessonBuilder ? <Check size={14} /> : <X size={14} />}
-                      </span>
-                      <span>{canUseLessonBuilder ? "Included" : "Library resources"}</span>
+                      <BadgeDollarSign size={18} />
+                      <span>Renew plan</span>
                     </strong>
                   </div>
-                </div>
+                </Link>
                 <div className="account-overview-tile">
                   <span className="pill">Status</span>
                   <div className="account-overview-status-row">
@@ -579,30 +510,6 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
                     </strong>
                   </div>
                 </div>
-              </div>
-              <div className="account-overview-actions">
-                <Link href="/resources" className="account-overview-action">
-                  <LibraryBig size={16} />
-                  <span>Curriculum library</span>
-                </Link>
-                {canUseLessonBuilder ? (
-                  <Link href="/lesson-builder" className="account-overview-action">
-                    <Blocks size={16} />
-                    <span>Lesson tools</span>
-                  </Link>
-                ) : (
-                  <span className="account-overview-action">
-                    <Blocks size={16} />
-                    <span>Library resources</span>
-                  </span>
-                )}
-                <a
-                  href={accountHolderEmail ? `mailto:${accountHolderEmail}` : undefined}
-                  className="account-overview-action"
-                >
-                  <Users size={16} />
-                  <span>Contact owner</span>
-                </a>
               </div>
             </>
           )}
@@ -653,32 +560,6 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
             )}
           </article>
           <div className="account-links-stack">
-            <article className="account-card account-card-links">
-              <div className="account-card-heading">
-                <h2>Quick links</h2>
-              </div>
-              <div className="account-quick-links">
-                <Link href="/resources" className="account-quick-link">
-                  <LibraryBig size={20} />
-                  <span>Curriculum Library</span>
-                </Link>
-                {canUseLessonBuilder ? (
-                  <Link href="/lesson-builder" className="account-quick-link">
-                    <Blocks size={20} />
-                    <span>Lesson tools</span>
-                  </Link>
-                ) : null}
-                <a href="#team-members-panel" className="account-quick-link">
-                  <Users size={20} />
-                  <span>Invited accounts</span>
-                </a>
-                <Link href={`/subscribe?tier=${membership.planTier}`} className="account-quick-link">
-                  <BadgeDollarSign size={20} />
-                  <span>Renew plan</span>
-                </Link>
-              </div>
-            </article>
-
             <article className="account-card account-card-verse">
               <blockquote className="account-verse-quote">“{verseOfTheDay.text}”</blockquote>
               <p className="account-verse-reference">{verseOfTheDay.reference}</p>
@@ -739,31 +620,6 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
       ) : (
         <>
         <section className="dashboard-grid account-history-links-grid account-history-links-grid-member">
-          <article className="account-card account-card-links">
-            <div className="account-card-heading">
-              <h2>Quick links</h2>
-            </div>
-            <div className="account-quick-links">
-              <Link href="/resources" className="account-quick-link">
-                <LibraryBig size={20} />
-                <span>Curriculum Library</span>
-              </Link>
-              {canUseLessonBuilder ? (
-                <Link href="/lesson-builder" className="account-quick-link">
-                  <Blocks size={20} />
-                  <span>Lesson tools</span>
-                </Link>
-              ) : null}
-              <a href="#team-members-panel" className="account-quick-link">
-                <Users size={20} />
-                <span>Team access</span>
-              </a>
-              <Link href="/resources" className="account-quick-link">
-                <BadgeDollarSign size={20} />
-                <span>Browse plans</span>
-              </Link>
-            </div>
-          </article>
           <article className="account-card account-card-verse">
             <blockquote className="account-verse-quote">“{verseOfTheDay.text}”</blockquote>
             <p className="account-verse-reference">{verseOfTheDay.reference}</p>
