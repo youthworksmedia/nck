@@ -1,8 +1,21 @@
 "use client";
 
-import { FileText, FolderOpen, Gamepad2, Music4, Plus, Trash2, Video, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  FileText,
+  FolderOpen,
+  Gamepad2,
+  GripVertical,
+  Music4,
+  Plus,
+  Trash2,
+  Video,
+  X
+} from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { ModalPortal } from "@/components/modal-portal";
 import { formatDateTime } from "@/lib/time";
 import type { ResourceLibraryFile } from "@/lib/resource-assets";
 import type { LessonResourceAttachment, LessonResourceType } from "@/types";
@@ -13,6 +26,7 @@ export type LessonResourceDraft = {
   name: string;
   filePath: string;
   fileName: string;
+  sizeBytes?: number;
   file: File | null;
 };
 
@@ -20,6 +34,9 @@ type Props = {
   value: LessonResourceDraft[];
   onChange: (value: LessonResourceDraft[]) => void;
   files?: ResourceLibraryFile[];
+  title?: string;
+  description?: string;
+  addLabel?: string;
 };
 
 const typeOptions: Array<{ value: LessonResourceType; label: string }> = [
@@ -36,6 +53,7 @@ function createDraft(): LessonResourceDraft {
     name: "",
     filePath: "",
     fileName: "",
+    sizeBytes: undefined,
     file: null
   };
 }
@@ -64,8 +82,17 @@ export function emptyResourceDrafts() {
   return [createDraft()];
 }
 
-export function AdminLessonResourceFields({ value, onChange, files = [] }: Props) {
+export function AdminLessonResourceFields({
+  value,
+  onChange,
+  files = [],
+  title = "Lesson resources",
+  description = "Add each downloadable file with the name and icon members should see.",
+  addLabel = "Add resource"
+}: Props) {
   const [browseDraftId, setBrowseDraftId] = useState<string | null>(null);
+  const [draggedDraftId, setDraggedDraftId] = useState<string | null>(null);
+  const [dropTargetDraftId, setDropTargetDraftId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 30;
@@ -98,7 +125,34 @@ export function AdminLessonResourceFields({ value, onChange, files = [] }: Props
 
   function removeDraft(id: string) {
     const next = value.filter((entry) => entry.id !== id);
-        onChange(next.length ? next : emptyResourceDrafts());
+    onChange(next.length ? next : emptyResourceDrafts());
+  }
+
+  function moveDraft(index: number, direction: -1 | 1) {
+    const targetIndex = index + direction;
+
+    if (targetIndex < 0 || targetIndex >= value.length) {
+      return;
+    }
+
+    const next = [...value];
+    const [moved] = next.splice(index, 1);
+    next.splice(targetIndex, 0, moved);
+    onChange(next);
+  }
+
+  function reorderDraft(draggedId: string, targetId: string) {
+    const draggedIndex = value.findIndex((entry) => entry.id === draggedId);
+    const targetIndex = value.findIndex((entry) => entry.id === targetId);
+
+    if (draggedIndex === -1 || targetIndex === -1 || draggedIndex === targetIndex) {
+      return;
+    }
+
+    const next = [...value];
+    const [moved] = next.splice(draggedIndex, 1);
+    next.splice(targetIndex, 0, moved);
+    onChange(next);
   }
 
   function openBrowse(id: string) {
@@ -111,17 +165,51 @@ export function AdminLessonResourceFields({ value, onChange, files = [] }: Props
     <section className="admin-resource-files-editor">
       <div className="admin-resource-files-head">
         <div>
-          <h3>Lesson resources</h3>
-          <p>Add each downloadable file with the name and icon members should see.</p>
+          <h3>{title}</h3>
+          <p>{description}</p>
         </div>
         <button type="button" className="button button-secondary" onClick={() => onChange([...value, createDraft()])}>
           <Plus size={16} />
-          <span>Add resource</span>
+          <span>{addLabel}</span>
         </button>
       </div>
       <div className="admin-resource-file-list">
         {value.map((entry, index) => (
-          <div key={entry.id} className="admin-resource-file-row">
+          <div
+            key={entry.id}
+            className={`admin-resource-file-row ${dropTargetDraftId === entry.id ? "admin-resource-file-row-target" : ""}`}
+            onDragOver={(event) => {
+              event.preventDefault();
+              if (draggedDraftId && draggedDraftId !== entry.id) {
+                setDropTargetDraftId(entry.id);
+              }
+            }}
+            onDrop={(event) => {
+              event.preventDefault();
+              if (draggedDraftId) {
+                reorderDraft(draggedDraftId, entry.id);
+              }
+              setDraggedDraftId(null);
+              setDropTargetDraftId(null);
+            }}
+          >
+            <button
+              type="button"
+              className="button button-secondary icon-only-button admin-resource-file-drag"
+              draggable
+              aria-label={`Drag ${entry.name || `resource file ${index + 1}`} to sort`}
+              title="Drag to sort"
+              onDragStart={() => {
+                setDraggedDraftId(entry.id);
+                setDropTargetDraftId(entry.id);
+              }}
+              onDragEnd={() => {
+                setDraggedDraftId(null);
+                setDropTargetDraftId(null);
+              }}
+            >
+              <GripVertical size={18} />
+            </button>
             <div className="admin-resource-file-icon" aria-hidden="true">
               {entry.type === "game" ? <Gamepad2 size={18} /> : null}
               {entry.type === "music" ? <Music4 size={18} /> : null}
@@ -169,7 +257,8 @@ export function AdminLessonResourceFields({ value, onChange, files = [] }: Props
                     updateDraft(entry.id, {
                       file,
                       fileName: file?.name ?? entry.fileName,
-                      filePath: file ? "" : entry.filePath
+                      filePath: file ? "" : entry.filePath,
+                      sizeBytes: file?.size ?? entry.sizeBytes
                     });
                   }}
                 />
@@ -186,104 +275,148 @@ export function AdminLessonResourceFields({ value, onChange, files = [] }: Props
                 <p className="admin-resource-current-file">Current: {entry.fileName}</p>
               ) : null}
             </div>
-            <button
-              type="button"
-              className="button button-secondary icon-only-button admin-resource-file-remove"
-              aria-label="Remove resource file"
-              title="Remove resource file"
-              onClick={() => removeDraft(entry.id)}
-            >
-              <Trash2 size={16} />
-            </button>
+            <div className="admin-resource-file-actions">
+              <button
+                type="button"
+                className="button button-secondary icon-only-button"
+                aria-label={`Move ${entry.name || `resource file ${index + 1}`} up`}
+                title="Move up"
+                disabled={index === 0}
+                onClick={() => moveDraft(index, -1)}
+              >
+                <ArrowUp size={16} />
+              </button>
+              <button
+                type="button"
+                className="button button-secondary icon-only-button"
+                aria-label={`Move ${entry.name || `resource file ${index + 1}`} down`}
+                title="Move down"
+                disabled={index === value.length - 1}
+                onClick={() => moveDraft(index, 1)}
+              >
+                <ArrowDown size={16} />
+              </button>
+              <button
+                type="button"
+                className="button button-secondary icon-only-button admin-resource-file-remove"
+                aria-label="Remove resource file"
+                title="Remove resource file"
+                onClick={() => removeDraft(entry.id)}
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
           </div>
         ))}
       </div>
 
       {browsingDraft ? (
-        <div className="modal-backdrop" role="presentation" onClick={() => setBrowseDraftId(null)}>
-          <div className="modal-card asset-library-modal" onClick={(event) => event.stopPropagation()}>
-            <div className="modal-head">
-              <div>
-                <h3>Browse media</h3>
-                <p>Choose an existing file from General.</p>
+        <ModalPortal>
+          <div className="modal-backdrop" role="presentation" onClick={() => setBrowseDraftId(null)}>
+            <div className="modal-card asset-library-modal" onClick={(event) => event.stopPropagation()}>
+              <div className="modal-head">
+                <div>
+                  <h3>Browse media</h3>
+                  <p>Choose an existing file from General.</p>
+                </div>
+                <button
+                  type="button"
+                  className="asset-library-close"
+                  aria-label="Close media browser"
+                  onClick={() => setBrowseDraftId(null)}
+                >
+                  <X size={14} />
+                </button>
               </div>
-              <button
-                type="button"
-                className="asset-library-close"
-                aria-label="Close media browser"
-                onClick={() => setBrowseDraftId(null)}
-              >
-                <X size={14} />
-              </button>
-            </div>
-            <label className="admin-field-label" htmlFor={`asset-library-search-${browsingDraft.id}`}>
-              Search resources
-            </label>
-            <input
-              id={`asset-library-search-${browsingDraft.id}`}
-              type="search"
-              placeholder="Search by file name or type"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setPage(1);
-              }}
-            />
-            <div className="asset-library-list">
-              {visibleFiles.length ? (
-                visibleFiles.map((file) => (
-                  <div key={file.id} className="asset-library-row">
-                    <div>
-                      <strong>{file.name}</strong>
-                      <p>
-                        {formatFileSize(file.sizeBytes)} · {getFileType(file.name)} · Uploaded{" "}
-                        {formatDateTime(file.uploadedAt)}
-                      </p>
+              <label className="admin-field-label" htmlFor={`asset-library-search-${browsingDraft.id}`}>
+                Search resources
+              </label>
+              <input
+                id={`asset-library-search-${browsingDraft.id}`}
+                type="search"
+                placeholder="Search by file name or type"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
+              />
+              <div className="asset-library-list">
+                {visibleFiles.length ? (
+                  visibleFiles.map((file) => (
+                    <div key={file.id} className="asset-library-row">
+                      <div>
+                        <strong>{file.name}</strong>
+                        <p>
+                          {formatFileSize(file.sizeBytes)} · {getFileType(file.name)} · Uploaded{" "}
+                          {formatDateTime(file.uploadedAt)}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="button button-primary"
+                        onClick={() => {
+                          updateDraft(browsingDraft.id, {
+                            file: null,
+                            filePath: file.path,
+                            fileName: file.name,
+                            sizeBytes: file.sizeBytes,
+                            name: browsingDraft.name || file.name
+                          });
+                          setBrowseDraftId(null);
+                        }}
+                      >
+                        Use file
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      className="button button-primary"
-                      onClick={() => {
-                        updateDraft(browsingDraft.id, {
-                          file: null,
-                          filePath: file.path,
-                          fileName: file.name,
-                          name: browsingDraft.name || file.name
-                        });
-                        setBrowseDraftId(null);
-                      }}
-                    >
-                      Choose
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <p className="form-status">No files match your search.</p>
-              )}
-            </div>
-            <div className="asset-library-pagination">
-              <button
-                type="button"
-                className="button button-secondary"
-                disabled={page <= 1}
-                onClick={() => setPage((current) => Math.max(1, current - 1))}
-              >
-                Previous
-              </button>
-              <span>
-                Page {page} of {pageCount}
-              </span>
-              <button
-                type="button"
-                className="button button-secondary"
-                disabled={page >= pageCount}
-                onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
-              >
-                Next
-              </button>
+                  ))
+                ) : (
+                  <p className="admin-form-status">No files found.</p>
+                )}
+              </div>
+              {pageCount > 1 ? (
+                <div className="button-row button-row-tight">
+                  <button
+                    type="button"
+                    className="button button-secondary"
+                    disabled={page <= 1}
+                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  >
+                    Previous
+                  </button>
+                  <span className="admin-form-status">
+                    Page {page} of {pageCount}
+                  </span>
+                  <button
+                    type="button"
+                    className="button button-secondary"
+                    disabled={page >= pageCount}
+                    onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
+                  >
+                    Next
+                  </button>
+                </div>
+              ) : null}
+              {browsingDraft.fileName ? (
+                <button
+                  type="button"
+                  className="button button-secondary"
+                  onClick={() => {
+                    updateDraft(browsingDraft.id, {
+                      file: null,
+                      filePath: "",
+                      fileName: "",
+                      sizeBytes: undefined
+                    });
+                    setBrowseDraftId(null);
+                  }}
+                >
+                  Clear current file
+                </button>
+              ) : null}
             </div>
           </div>
-        </div>
+        </ModalPortal>
       ) : null}
     </section>
   );

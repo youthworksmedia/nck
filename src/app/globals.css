@@ -3767,17 +3767,35 @@ button {
 
 .admin-resource-file-row {
   display: grid;
-  grid-template-columns: auto minmax(10rem, 1fr) minmax(8rem, 0.45fr) minmax(12rem, 1fr) auto;
+  grid-template-columns: auto auto minmax(10rem, 1fr) minmax(8rem, 0.45fr) minmax(12rem, 1fr) auto;
   gap: 0.75rem;
   align-items: flex-end;
 }
 
+
+.admin-resource-file-row-target {
+  border-radius: 6px;
+  outline: 2px solid rgba(210, 51, 116, 0.32);
+  outline-offset: 0.35rem;
+  background: rgba(210, 51, 116, 0.06);
+}
 .admin-resource-current-file {
   margin: 0.35rem 0 0;
 }
 
 .admin-resource-file-remove {
   align-self: end;
+}
+
+.admin-resource-file-drag {
+  align-self: center;
+  cursor: grab;
+}
+
+.admin-resource-file-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.35rem;
 }
 
 .asset-library-modal {
