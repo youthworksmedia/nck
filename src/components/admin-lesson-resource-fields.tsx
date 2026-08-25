@@ -3,6 +3,7 @@
 import {
   ArrowDown,
   ArrowUp,
+  ChevronDown,
   FileText,
   FolderOpen,
   Gamepad2,
@@ -71,6 +72,22 @@ function getFileType(name: string) {
   return extension || "FILE";
 }
 
+function ResourceTypeIcon({ type, size = 18 }: { type: LessonResourceType; size?: number }) {
+  if (type === "game") {
+    return <Gamepad2 size={size} />;
+  }
+
+  if (type === "music") {
+    return <Music4 size={size} />;
+  }
+
+  if (type === "video") {
+    return <Video size={size} />;
+  }
+
+  return <FileText size={size} />;
+}
+
 export function attachmentsToDrafts(attachments: LessonResourceAttachment[] = []): LessonResourceDraft[] {
   return attachments.map((attachment) => ({
     ...attachment,
@@ -93,6 +110,7 @@ export function AdminLessonResourceFields({
   const [browseDraftId, setBrowseDraftId] = useState<string | null>(null);
   const [draggedDraftId, setDraggedDraftId] = useState<string | null>(null);
   const [dropTargetDraftId, setDropTargetDraftId] = useState<string | null>(null);
+  const [openTypeMenuId, setOpenTypeMenuId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 30;
@@ -211,10 +229,7 @@ export function AdminLessonResourceFields({
               <GripVertical size={18} />
             </button>
             <div className="admin-resource-file-icon" aria-hidden="true">
-              {entry.type === "game" ? <Gamepad2 size={18} /> : null}
-              {entry.type === "music" ? <Music4 size={18} /> : null}
-              {entry.type === "video" ? <Video size={18} /> : null}
-              {entry.type === "pdf" ? <FileText size={18} /> : null}
+              <ResourceTypeIcon type={entry.type} />
             </div>
             <div>
               <label className="admin-field-label" htmlFor={`resource-file-name-${entry.id}`}>
@@ -229,20 +244,54 @@ export function AdminLessonResourceFields({
               />
             </div>
             <div>
-              <label className="admin-field-label" htmlFor={`resource-file-type-${entry.id}`}>
+              <label className="admin-field-label" id={`resource-file-type-label-${entry.id}`}>
                 Icon
               </label>
-              <select
-                id={`resource-file-type-${entry.id}`}
-                value={entry.type}
-                onChange={(event) => updateDraft(entry.id, { type: event.target.value as LessonResourceType })}
+              <div
+                className="admin-resource-type-menu"
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget)) {
+                    setOpenTypeMenuId(null);
+                  }
+                }}
               >
-                {typeOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                <button
+                  type="button"
+                  className="admin-resource-type-button"
+                  aria-haspopup="listbox"
+                  aria-expanded={openTypeMenuId === entry.id}
+                  aria-labelledby={`resource-file-type-label-${entry.id}`}
+                  onClick={() =>
+                    setOpenTypeMenuId((current) => (current === entry.id ? null : entry.id))
+                  }
+                >
+                  <span>{typeOptions.find((option) => option.value === entry.type)?.label ?? "PDF"}</span>
+                  <ResourceTypeIcon type={entry.type} size={17} />
+                  <ChevronDown size={17} />
+                </button>
+                {openTypeMenuId === entry.id ? (
+                  <div className="admin-resource-type-options" role="listbox" tabIndex={-1}>
+                    {typeOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`admin-resource-type-option ${
+                          option.value === entry.type ? "admin-resource-type-option-active" : ""
+                        }`}
+                        role="option"
+                        aria-selected={option.value === entry.type}
+                        onClick={() => {
+                          updateDraft(entry.id, { type: option.value });
+                          setOpenTypeMenuId(null);
+                        }}
+                      >
+                        <span>{option.label}</span>
+                        <ResourceTypeIcon type={option.value} size={17} />
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             </div>
             <div>
               <label className="admin-field-label" htmlFor={`resource-file-upload-${entry.id}`}>
