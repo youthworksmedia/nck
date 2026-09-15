@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import "@/app/globals.css";
+import { GlobalPageLoadMonitor } from "@/components/global-page-load-monitor";
 import { metadataBase, siteDescription, siteName } from "@/lib/metadata";
 
 export const metadata: Metadata = {
@@ -22,6 +24,13 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "/"
+  },
+  icons: {
+    icon: [
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/nck-logo.png", sizes: "160x160", type: "image/png" }
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }]
   },
   openGraph: {
     title: siteName,
@@ -45,7 +54,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@600;700;900&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body>
+        <Suspense fallback={null}>
+          <GlobalPageLoadMonitor />
+        </Suspense>
         {children}
       </body>
     </html>

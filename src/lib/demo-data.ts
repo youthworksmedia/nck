@@ -10,8 +10,9 @@ export const demoResources: Resource[] = [
     description: "Children discover that creation is good because God made it and loves what he has made.",
     lessonNumber: 1,
     scripture: "Genesis 1:1-31",
-    yearCycle: "Year A",
-    term: "Term 1",
+    bigIdea: "Big Idea coming soon.",
+    yearCycle: "Volume 1",
+    term: "Unit 1",
     musicAvailable: true,
     worksheetAvailable: true,
     manualAvailable: true
@@ -22,8 +23,9 @@ export const demoResources: Resource[] = [
     description: "A lesson about the kindness of Jesus and his welcome to children.",
     lessonNumber: 2,
     scripture: "Mark 10:13-16",
-    yearCycle: "Year A",
-    term: "Term 1",
+    bigIdea: "Big Idea coming soon.",
+    yearCycle: "Volume 1",
+    term: "Unit 1",
     musicAvailable: true,
     worksheetAvailable: true,
     manualAvailable: true
@@ -34,8 +36,9 @@ export const demoResources: Resource[] = [
     description: "Children learn that Jesus knows, leads, and cares for his people.",
     lessonNumber: 3,
     scripture: "John 10:1-18",
-    yearCycle: "Year A",
-    term: "Term 1",
+    bigIdea: "Big Idea coming soon.",
+    yearCycle: "Volume 1",
+    term: "Unit 1",
     musicAvailable: false,
     worksheetAvailable: true,
     manualAvailable: true
@@ -44,9 +47,9 @@ export const demoResources: Resource[] = [
 
 export const demoTermNotes: CurriculumTermNote[] = [
   {
-    yearCycle: "Year A",
-    term: "Term 1",
-    content: "<h2>Term 1 Summary</h2><p>This term introduces children to the goodness of God in creation, the welcome of Jesus, and the care of the Good Shepherd.</p><h3>Description</h3><p>Use these lessons to establish core language for your group: God made us, Jesus welcomes us, and we can trust him.</p>"
+    yearCycle: "Volume 1",
+    term: "Unit 1",
+    content: "<h2>Unit 1 Summary</h2><p>This unit introduces children to the goodness of God in creation, the welcome of Jesus, and the care of the Good Shepherd.</p><h3>Description</h3><p>Use these lessons to establish core language for your group: God made us, Jesus welcomes us, and we can trust him.</p>"
   }
 ];
 
@@ -69,6 +72,7 @@ export const demoMembership: MembershipSnapshot = {
   planTier: "scale",
   subscriptionStatus: "active",
   renewalDate: "2027-03-01",
+  cancelAtPeriodEnd: false,
   memberCount: demoTeamMembers.length
 };
 

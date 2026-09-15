@@ -2,29 +2,29 @@
 
 import type { Route } from "next";
 import Link from "next/link";
-import { FileText, Gamepad2, GripVertical, Music4, Pencil, Save, Trash2, Video } from "lucide-react";
+import { GripVertical, Pencil, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 
 import {
-  AdminLessonResourceFields,
-  attachmentsToDrafts,
-  emptyResourceDrafts,
-  type LessonResourceDraft
-} from "@/components/admin-lesson-resource-fields";
-import { AdminTermNoteEditor } from "@/components/admin-term-note-editor";
-import { WysiwygEditor } from "@/components/wysiwyg-editor";
-import { getTodayISO } from "@/lib/time";
-import type { CurriculumTermNote, Resource } from "@/types";
+  curriculumSections,
+  curriculumYears,
+  normalizeCurriculumSection,
+  normalizeCurriculumYear,
+  type CurriculumSection,
+  type CurriculumYear
+} from "@/lib/curriculum";
 import type { ResourceLibraryFile } from "@/lib/resource-assets";
+import { getTodayISO } from "@/lib/time";
+import type { Resource } from "@/types";
 
 type Props = {
   resources: Resource[];
   files: ResourceLibraryFile[];
-  activeYear: "Year A" | "Year B" | "Year C";
-  activeTerm?: "Term 1" | "Term 2" | "Term 3" | "Term 4";
-  termNotes: CurriculumTermNote[];
+  activeYear: CurriculumYear;
+  activeTerm?: CurriculumSection;
   basePath?: "/content" | "/admin";
+  showTermTabs?: boolean;
 };
 
 function isInactiveResource(resource: Resource) {
@@ -68,31 +68,22 @@ function buildContentHref(
   return (query ? `${basePath}?${query}` : basePath) as Route;
 }
 
+function buildResourceEditHref(basePath: "/content" | "/admin", resourceId: string) {
+  return (basePath === "/admin" ? `/admin/resources/${resourceId}` : `${basePath}?edit=${resourceId}`) as Route;
+}
+
 export function AdminResourceList({
   resources,
-  files,
   activeYear,
-  activeTerm = "Term 1",
-  termNotes,
-  basePath = "/content"
+  activeTerm = "Unit 1",
+  basePath = "/content",
+  showTermTabs = true
 }: Props) {
   const router = useRouter();
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
-  const [selectedTerm, setSelectedTerm] = useState<"Term 1" | "Term 2" | "Term 3" | "Term 4">(activeTerm);
-  const [draft, setDraft] = useState({
-    title: "",
-    description: "",
-    scripture: "",
-    yearCycle: "Year A" as "Year A" | "Year B" | "Year C",
-    term: "Term 1" as "Term 1" | "Term 2" | "Term 3" | "Term 4",
-    publishDate: "",
-    expiryDate: "",
-    status: "open" as "open" | "closed",
-    resourceFiles: emptyResourceDrafts() as LessonResourceDraft[]
-  });
+  const [selectedTerm, setSelectedTerm] = useState<CurriculumSection>(activeTerm);
 
   useEffect(() => {
     setSelectedTerm(activeTerm);
@@ -100,15 +91,15 @@ export function AdminResourceList({
 
   const grouped = useMemo(
     () =>
-      ["Year A", "Year B", "Year C"].map((yearCycle) => ({
+      curriculumYears.map((yearCycle) => ({
         yearCycle,
-        terms: ["Term 1", "Term 2", "Term 3", "Term 4"].map((term) => ({
+        terms: curriculumSections.map((term) => ({
           term,
           entries: resources
             .filter(
               (resource) =>
-                (resource.yearCycle ?? "Year A") === yearCycle &&
-                (resource.term ?? "Term 1") === term
+                normalizeCurriculumYear(resource.yearCycle) === yearCycle &&
+                normalizeCurriculumSection(resource.term) === term
             )
             .sort((a, b) => {
               const aInactive = isInactiveResource(a);
@@ -125,15 +116,7 @@ export function AdminResourceList({
     [resources]
   );
 
-  const termNoteMap = useMemo(
-    () =>
-      new Map(
-        termNotes.map((note) => [`${note.yearCycle}::${note.term}`, note.content])
-      ),
-    [termNotes]
-  );
-
-  async function reorder(yearCycle: "Year A" | "Year B" | "Year C", term: "Term 1" | "Term 2" | "Term 3" | "Term 4", orderedIds: string[]) {
+  async function reorder(yearCycle: CurriculumYear, term: CurriculumSection, orderedIds: string[]) {
     startTransition(async () => {
       const response = await fetch("/api/admin/resources/reorder", {
         method: "POST",
@@ -149,429 +132,178 @@ export function AdminResourceList({
     });
   }
 
-  function submitDraft(resourceId: string, options?: { addMore?: boolean }) {
-    startTransition(async () => {
-      const formData = new FormData();
-      formData.set("title", draft.title);
-      formData.set("description", draft.description);
-      formData.set("scripture", draft.scripture);
-      formData.set("yearCycle", draft.yearCycle);
-      formData.set("term", draft.term);
-      formData.set("publishDate", draft.publishDate);
-      formData.set("expiryDate", draft.expiryDate);
-      formData.set("status", draft.status);
-      formData.set(
-        "resourceFiles",
-        JSON.stringify(
-          draft.resourceFiles.map(({ file: _file, ...entry }) => ({
-            ...entry,
-            name: entry.name.trim() || entry.fileName || "Resource"
-          }))
-        )
-      );
-      draft.resourceFiles.forEach((entry) => {
-        if (entry.file) {
-          formData.set(`resourceFile-${entry.id}`, entry.file);
-        }
-      });
-
-      const response = await fetch(`/api/admin/resources/${resourceId}`, {
-        method: "PATCH",
-        body: formData
-      });
-
-      if (!response.ok) {
-        return;
-      }
-
-      setEditingId(null);
-
-      if (options?.addMore) {
-        router.push(buildContentHref(basePath, { tab: "add", year: draft.yearCycle, term: draft.term }));
-      }
-
-      router.refresh();
-    });
-  }
-
   return (
     <div className="stack-sm">
       {grouped
         .filter((yearGroup) => yearGroup.yearCycle === activeYear)
         .map((yearGroup) => (
-        <section key={yearGroup.yearCycle}>
-          <div className="admin-term-tabs" role="tablist" aria-label="Library term tabs">
-            {yearGroup.terms.map((termGroup) => (
-              <button
-                key={`${yearGroup.yearCycle}-${termGroup.term}-tab`}
-                type="button"
-                role="tab"
-                aria-selected={selectedTerm === termGroup.term}
-                className={`admin-term-tab ${selectedTerm === termGroup.term ? "admin-term-tab-active" : ""}`}
-                onClick={() => setSelectedTerm(termGroup.term as "Term 1" | "Term 2" | "Term 3" | "Term 4")}
-              >
-                {termGroup.term}
-              </button>
-            ))}
-          </div>
-          <div className="stack-sm">
-            {yearGroup.terms.map((termGroup) =>
-              termGroup.term === selectedTerm ? (
-                <section
-                  key={`${yearGroup.yearCycle}-${termGroup.term}`}
-                  className="admin-term-group panel panel-compact"
-                >
-                  <AdminTermNoteEditor
-                    yearCycle={yearGroup.yearCycle as "Year A" | "Year B" | "Year C"}
-                    term={termGroup.term as "Term 1" | "Term 2" | "Term 3" | "Term 4"}
-                    initialContent={termNoteMap.get(`${yearGroup.yearCycle}::${termGroup.term}`) ?? ""}
-                  />
-                  <div className="admin-term-tools">
-                    <p className="admin-drag-help">
-                      {termGroup.entries.length
-                        ? "Drag lessons up or down to reorganise them inside this term."
-                        : "No lessons in this term yet. Use Add to create one here."}
-                    </p>
-                    <Link
-                      href={buildContentHref(basePath, {
-                        tab: "add",
-                        year: yearGroup.yearCycle,
-                        term: termGroup.term
-                      })}
-                      className="button button-primary admin-term-add"
-                      aria-label={`Add lesson to ${yearGroup.yearCycle} ${termGroup.term}`}
-                      title={`Add lesson to ${yearGroup.yearCycle} ${termGroup.term}`}
-                    >
-                      + Add
-                    </Link>
-                  </div>
-                  {termGroup.entries.length ? (
-                  <>
-                  {termGroup.entries.map((resource) => {
-                    const isEditing = editingId === resource.id;
-                    const isDragTarget = dropTargetId === resource.id;
-                    const isInactive = isInactiveResource(resource);
-                    const isExpired = isExpiredResource(resource);
-
-                    return (
-                      <div
-                        className={`panel panel-compact ${isDragTarget ? "admin-drag-target" : ""} ${isInactive ? "admin-resource-inactive" : ""}`}
-                        key={resource.id}
-                        draggable={!isEditing}
-                        onDragStart={() => {
-                          setDraggedId(resource.id);
-                          setDropTargetId(resource.id);
-                        }}
-                        onDragOver={(event) => {
-                          event.preventDefault();
-                          if (draggedId && draggedId !== resource.id) {
-                            setDropTargetId(resource.id);
-                          }
-                        }}
-                        onDrop={(event) => {
-                          event.preventDefault();
-
-                          if (!draggedId || draggedId === resource.id) {
-                            setDraggedId(null);
-                            setDropTargetId(null);
-                            return;
-                          }
-
-                          const currentIds = termGroup.entries.map((entry) => entry.id);
-                          const draggedIndex = currentIds.indexOf(draggedId);
-                          const targetIndex = currentIds.indexOf(resource.id);
-
-                          if (draggedIndex === -1 || targetIndex === -1) {
-                            setDraggedId(null);
-                            setDropTargetId(null);
-                            return;
-                          }
-
-                          const reordered = [...currentIds];
-                          const [moved] = reordered.splice(draggedIndex, 1);
-                          reordered.splice(targetIndex, 0, moved);
-
-                          setDraggedId(null);
-                          setDropTargetId(null);
-                          reorder(
-                            yearGroup.yearCycle as "Year A" | "Year B" | "Year C",
-                            termGroup.term as "Term 1" | "Term 2" | "Term 3" | "Term 4",
-                            reordered
-                          );
-                        }}
-                        onDragEnd={() => {
-                          setDraggedId(null);
-                          setDropTargetId(null);
-                        }}
+          <section key={yearGroup.yearCycle}>
+            {showTermTabs ? (
+              <div className="admin-term-tabs" role="tablist" aria-label="Library term tabs">
+                {yearGroup.terms.map((termGroup) => (
+                  <button
+                    key={`${yearGroup.yearCycle}-${termGroup.term}-tab`}
+                    type="button"
+                    role="tab"
+                    aria-selected={selectedTerm === termGroup.term}
+                    className={`admin-term-tab ${selectedTerm === termGroup.term ? "admin-term-tab-active" : ""}`}
+                    onClick={() => setSelectedTerm(termGroup.term)}
+                  >
+                    {termGroup.term}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            <div className="stack-sm">
+              {yearGroup.terms.map((termGroup) =>
+                termGroup.term === selectedTerm ? (
+                  <section
+                    key={`${yearGroup.yearCycle}-${termGroup.term}`}
+                    className="admin-term-group panel panel-compact"
+                  >
+                    <div className="admin-term-tools">
+                      <p className="admin-drag-help">
+                        {termGroup.entries.length
+                          ? "Drag lessons up or down to reorganise them inside this term."
+                          : "No lessons in this term yet. Use Add to create one here."}
+                      </p>
+                      <Link
+                        href={buildContentHref(basePath, {
+                          tab: "add",
+                          year: yearGroup.yearCycle,
+                          term: termGroup.term
+                        })}
+                        className="button button-primary admin-term-add"
+                        aria-label={`Add lesson to ${yearGroup.yearCycle} ${termGroup.term}`}
+                        title={`Add lesson to ${yearGroup.yearCycle} ${termGroup.term}`}
                       >
-                        {isEditing ? (
-                          <div className="invite-form">
-                            <div className="admin-title-row">
-                              <label className="admin-field-label" htmlFor={`resource-title-${resource.id}`}>
-                                Title *
-                              </label>
-                              <input
-                                id={`resource-title-${resource.id}`}
-                                type="text"
-                                value={draft.title}
-                                onChange={(event) =>
-                                  setDraft((current) => ({ ...current, title: event.target.value }))
+                        + Add
+                      </Link>
+                    </div>
+                    {termGroup.entries.length
+                      ? termGroup.entries.map((resource) => {
+                          const isDragTarget = dropTargetId === resource.id;
+                          const isInactive = isInactiveResource(resource);
+                          const isExpired = isExpiredResource(resource);
+                          const editHref = buildResourceEditHref(basePath, resource.id);
+
+                          return (
+                            <div
+                              className={`panel panel-compact ${isDragTarget ? "admin-drag-target" : ""} ${
+                                isInactive ? "admin-resource-inactive" : ""
+                              }`}
+                              key={resource.id}
+                              draggable
+                              onDragStart={() => {
+                                setDraggedId(resource.id);
+                                setDropTargetId(resource.id);
+                              }}
+                              onDragOver={(event) => {
+                                event.preventDefault();
+                                if (draggedId && draggedId !== resource.id) {
+                                  setDropTargetId(resource.id);
                                 }
-                                required
-                              />
-                            </div>
-                            <div className="three-up admin-form-grid">
-                              <div>
-                                <label className="admin-field-label" htmlFor={`resource-scripture-${resource.id}`}>
-                                  Scripture *
-                                </label>
-                                <input
-                                  id={`resource-scripture-${resource.id}`}
-                                  type="text"
-                                  value={draft.scripture}
-                                  onChange={(event) =>
-                                    setDraft((current) => ({
-                                      ...current,
-                                      scripture: event.target.value
-                                    }))
-                                  }
-                                />
-                              </div>
-                              <div>
-                                <label className="admin-field-label" htmlFor={`resource-year-${resource.id}`}>
-                                  Year *
-                                </label>
-                                <select
-                                  id={`resource-year-${resource.id}`}
-                                  value={draft.yearCycle}
-                                  onChange={(event) =>
-                                    setDraft((current) => ({
-                                      ...current,
-                                      yearCycle: event.target.value as "Year A" | "Year B" | "Year C"
-                                    }))
-                                  }
-                                >
-                                  <option value="Year A">Year A</option>
-                                  <option value="Year B">Year B</option>
-                                  <option value="Year C">Year C</option>
-                                </select>
-                              </div>
-                              <div>
-                                <label className="admin-field-label" htmlFor={`resource-term-${resource.id}`}>
-                                  Term *
-                                </label>
-                                <select
-                                  id={`resource-term-${resource.id}`}
-                                  value={draft.term}
-                                  onChange={(event) =>
-                                    setDraft((current) => ({
-                                      ...current,
-                                      term: event.target.value as "Term 1" | "Term 2" | "Term 3" | "Term 4"
-                                    }))
-                                  }
-                                >
-                                  <option value="Term 1">Term 1</option>
-                                  <option value="Term 2">Term 2</option>
-                                  <option value="Term 3">Term 3</option>
-                                  <option value="Term 4">Term 4</option>
-                                </select>
-                              </div>
-                            </div>
-                            <div className="three-up admin-form-grid">
-                              <div>
-                                <label className="admin-field-label" htmlFor={`resource-publish-${resource.id}`}>
-                                  Publish date *
-                                </label>
-                                <input
-                                  id={`resource-publish-${resource.id}`}
-                                  type="date"
-                                  value={draft.publishDate}
-                                  onChange={(event) =>
-                                    setDraft((current) => ({
-                                      ...current,
-                                      publishDate: event.target.value
-                                    }))
-                                  }
-                                />
-                              </div>
-                              <div>
-                                <label className="admin-field-label" htmlFor={`resource-expiry-${resource.id}`}>
-                                  Expiry date
-                                </label>
-                                <input
-                                  id={`resource-expiry-${resource.id}`}
-                                  type="date"
-                                  value={draft.expiryDate}
-                                  onChange={(event) =>
-                                    setDraft((current) => ({
-                                      ...current,
-                                      expiryDate: event.target.value
-                                    }))
-                                  }
-                                />
-                              </div>
-                            </div>
-                            <div className="three-up admin-form-grid">
-                              <div>
-                                <label className="admin-field-label" htmlFor={`resource-status-${resource.id}`}>
-                                  Status *
-                                </label>
-                                <select
-                                  id={`resource-status-${resource.id}`}
-                                  value={draft.status}
-                                  onChange={(event) =>
-                                    setDraft((current) => ({
-                                      ...current,
-                                      status: event.target.value as "open" | "closed"
-                                    }))
-                                  }
-                                >
-                                  <option value="open">Open</option>
-                                  <option value="closed">Closed</option>
-                                </select>
-                              </div>
-                            </div>
-                            <AdminLessonResourceFields
-                              value={draft.resourceFiles}
-                              files={files}
-                              onChange={(resourceFiles) =>
-                                setDraft((current) => ({ ...current, resourceFiles }))
-                              }
-                            />
-                            <WysiwygEditor
-                              label="Content *"
-                              value={draft.description}
-                              onChange={(value) =>
-                                setDraft((current) => ({ ...current, description: value }))
-                              }
-                              placeholder="Write the lesson content here."
-                            />
-                            <div className="button-row button-row-tight">
-                              <button
-                                type="button"
-                                className="button button-primary"
-                                disabled={isPending}
-                                onClick={() => submitDraft(resource.id)}
-                              >
-                                <Save size={16} />
-                                <span>{isPending ? "Updating..." : "Update"}</span>
-                              </button>
-                              <button
-                                type="button"
-                                className="button"
-                                disabled={isPending}
-                                onClick={() => submitDraft(resource.id, { addMore: true })}
-                              >
-                                <Save size={16} />
-                                <span>{isPending ? "Updating..." : "Save and add more"}</span>
-                              </button>
-                              <button
-                                type="button"
-                                className="button button-secondary"
-                                onClick={() => {
-                                  setEditingId(null);
-                                }}
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="admin-inline-row">
-                            <div>
-                              <strong
-                                className={`admin-resource-title ${resource.status === "closed" ? "admin-resource-title-closed" : ""}`}
-                              >
-                                <GripVertical size={16} />
-                                <span>
-                                  {isInactive ? null : `Lesson #${resource.lessonNumber ?? 1} - `}
-                                  {resource.title}
-                                  {resource.scripture ? (
-                                    <span className="admin-resource-scripture-inline">
-                                      {" "}
-                                      ({resource.scripture})
+                              }}
+                              onDrop={(event) => {
+                                event.preventDefault();
+
+                                if (!draggedId || draggedId === resource.id) {
+                                  setDraggedId(null);
+                                  setDropTargetId(null);
+                                  return;
+                                }
+
+                                const currentIds = termGroup.entries.map((entry) => entry.id);
+                                const draggedIndex = currentIds.indexOf(draggedId);
+                                const targetIndex = currentIds.indexOf(resource.id);
+
+                                if (draggedIndex === -1 || targetIndex === -1) {
+                                  setDraggedId(null);
+                                  setDropTargetId(null);
+                                  return;
+                                }
+
+                                const reordered = [...currentIds];
+                                const [moved] = reordered.splice(draggedIndex, 1);
+                                reordered.splice(targetIndex, 0, moved);
+
+                                setDraggedId(null);
+                                setDropTargetId(null);
+                                reorder(yearGroup.yearCycle, termGroup.term, reordered);
+                              }}
+                              onDragEnd={() => {
+                                setDraggedId(null);
+                                setDropTargetId(null);
+                              }}
+                            >
+                              <div className="admin-inline-row">
+                                <div>
+                                  <Link
+                                    href={editHref}
+                                    className={`admin-resource-title ${
+                                      resource.status === "closed" ? "admin-resource-title-closed" : ""
+                                    }`}
+                                  >
+                                    <GripVertical size={16} />
+                                    <span>
+                                      {isInactive ? null : `Lesson ${resource.lessonNumber ?? 1} - `}
+                                      {resource.title}
+                                      {resource.scripture ? (
+                                        <span className="admin-resource-scripture-inline"> ({resource.scripture})</span>
+                                      ) : null}
+                                      {isExpired ? <span className="admin-expired-badge">Expired</span> : null}
                                     </span>
-                                  ) : null}
-                                  {isExpired ? <span className="admin-expired-badge">Expired</span> : null}
-                                </span>
-                              </strong>
-                              <div className="resource-meta">
-                                {(resource.attachments ?? []).map((attachment) => (
-                                  <span className="pill" key={attachment.id}>
-                                    {attachment.type === "pdf" ? <FileText size={14} /> : null}
-                                    {attachment.type === "game" ? <Gamepad2 size={14} /> : null}
-                                    {attachment.type === "music" ? <Music4 size={14} /> : null}
-                                    {attachment.type === "video" ? <Video size={14} /> : null}
-                                    {attachment.name}
-                                  </span>
-                                ))}
+                                  </Link>
+                                </div>
+                                <div className="button-row button-row-tight">
+                                  <Link
+                                    href={editHref}
+                                    className="button button-secondary icon-only-button"
+                                    aria-label={`Edit ${resource.title}`}
+                                    title={`Edit ${resource.title}`}
+                                  >
+                                    <Pencil size={16} />
+                                  </Link>
+                                  <button
+                                    type="button"
+                                    className="button button-secondary icon-only-button"
+                                    disabled={isPending}
+                                    aria-label={`Delete ${resource.title}`}
+                                    title={`Delete ${resource.title}`}
+                                    onClick={() => {
+                                      const confirmed = window.confirm(
+                                        `Delete "${resource.title}" from the curriculum library?`
+                                      );
+
+                                      if (!confirmed) {
+                                        return;
+                                      }
+
+                                      startTransition(async () => {
+                                        const response = await fetch(`/api/admin/resources/${resource.id}`, {
+                                          method: "DELETE"
+                                        });
+
+                                        if (response.ok) {
+                                          router.refresh();
+                                        }
+                                      });
+                                    }}
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
                               </div>
                             </div>
-                            <div className="button-row button-row-tight">
-                              <button
-                                type="button"
-                                className="button button-secondary icon-only-button"
-                                aria-label={`Edit ${resource.title}`}
-                                title={`Edit ${resource.title}`}
-                                onClick={() => {
-                                  setEditingId(resource.id);
-                                  setDraft({
-                                    title: resource.title,
-                                    description: resource.description,
-                                    scripture: resource.scripture ?? "",
-                                    yearCycle: resource.yearCycle ?? "Year A",
-                                    term: resource.term ?? "Term 1",
-                                    publishDate: resource.publishDate ?? "",
-                                    expiryDate: resource.expiryDate ?? "",
-                                    status: resource.status ?? "open",
-                                    resourceFiles: resource.attachments?.length
-                                      ? attachmentsToDrafts(resource.attachments)
-                                      : emptyResourceDrafts()
-                                  });
-                                }}
-                              >
-                                <Pencil size={16} />
-                              </button>
-                              <button
-                                type="button"
-                                className="button button-secondary icon-only-button"
-                                disabled={isPending}
-                                aria-label={`Delete ${resource.title}`}
-                                title={`Delete ${resource.title}`}
-                                onClick={() => {
-                                  const confirmed = window.confirm(`Delete "${resource.title}" from the curriculum library?`);
-
-                                  if (!confirmed) {
-                                    return;
-                                  }
-
-                                  startTransition(async () => {
-                                    const response = await fetch(`/api/admin/resources/${resource.id}`, {
-                                      method: "DELETE"
-                                    });
-
-                                    if (response.ok) {
-                                      router.refresh();
-                                    }
-                                  });
-                                }}
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                  </>
-                  ) : null}
-                </section>
-              ) : null
-            )}
-          </div>
-        </section>
-      ))}
+                          );
+                        })
+                      : null}
+                  </section>
+                ) : null
+              )}
+            </div>
+          </section>
+        ))}
     </div>
   );
 }

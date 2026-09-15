@@ -4,6 +4,8 @@ import { Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { ModalPortal } from "@/components/modal-portal";
+
 export function InviteTeamForm({
   remainingAdditionalTeamMembers
 }: {
@@ -31,6 +33,7 @@ export function InviteTeamForm({
       </button>
 
       {isOpen ? (
+        <ModalPortal>
         <div className="modal-backdrop" role="presentation" onClick={() => setIsOpen(false)}>
           <div
             className="modal-card account-team-modal-card"
@@ -40,9 +43,9 @@ export function InviteTeamForm({
             onClick={(event) => event.stopPropagation()}
           >
             <div className="modal-head">
-              <div>
-                <h3 id="invite-team-member-modal">Invite team member</h3>
-                <p>Enter an email address and we will send an invitation link.</p>
+                <div>
+                  <h3 id="invite-team-member-modal">Invite team member</h3>
+                <p>Enter their email address and we will send an invitation link.</p>
               </div>
               <button
                 type="button"
@@ -105,6 +108,7 @@ export function InviteTeamForm({
             </form>
           </div>
         </div>
+        </ModalPortal>
       ) : null}
     </>
   );

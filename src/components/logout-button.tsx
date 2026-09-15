@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { LogOut } from "lucide-react";
+import { Power } from "lucide-react";
+
+import { ModalPortal } from "@/components/modal-portal";
 
 export function LogoutButton() {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,11 +17,12 @@ export function LogoutButton() {
         title="Logout"
         aria-label="Logout"
       >
-        <LogOut size={16} />
+        <Power size={16} />
         <span className="sr-only">Logout</span>
       </button>
 
       {isOpen ? (
+        <ModalPortal>
         <div className="modal-backdrop" role="presentation" onClick={() => setIsOpen(false)}>
           <div
             className="modal-card logout-modal-card"
@@ -49,6 +52,7 @@ export function LogoutButton() {
             </div>
           </div>
         </div>
+        </ModalPortal>
       ) : null}
     </>
   );

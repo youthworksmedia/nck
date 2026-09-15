@@ -5,7 +5,7 @@ import { DeleteMemberButton } from "@/components/delete-member-button";
 import { InviteTeamForm } from "@/components/invite-team-form";
 import { TeamPasswordForm } from "@/components/team-password-form";
 import { buildPrivateMetadata } from "@/lib/metadata";
-import { getCurrentUser, getMembershipSnapshot, getTeamMembers, isCurrentUserOwner } from "@/lib/portal";
+import { getCurrentUser, getTeamMembers, isCurrentUserOwner } from "@/lib/portal";
 
 export const metadata: Metadata = buildPrivateMetadata({
   title: "Team",
@@ -16,8 +16,7 @@ export default async function TeamPage() {
   const [teamMembers, user, isOwner] = await Promise.all([
     getTeamMembers(),
     getCurrentUser(),
-    isCurrentUserOwner(),
-    getMembershipSnapshot()
+    isCurrentUserOwner()
   ]);
   const remainingAdditionalTeamMembers = Number.POSITIVE_INFINITY;
 

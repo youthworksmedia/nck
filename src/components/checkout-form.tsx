@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { CheckCircle2, CreditCard, LockKeyhole, ShieldCheck, ShoppingBag } from "lucide-react";
 
 import { PasswordInput } from "@/components/password-input";
 import { acceptedFakeCards, detectCardBrandFromPrefix } from "@/lib/checkout";
-import { countries, inferCountryFromBrowser } from "@/lib/countries";
+import { countries } from "@/lib/countries";
 import { isStrongPassword, passwordRequirementText } from "@/lib/password";
 import type { Plan } from "@/lib/plans";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -43,7 +43,6 @@ export function CheckoutForm({
   const [stateName, setStateName] = useState(defaults?.state ?? "");
   const [postcode, setPostcode] = useState(defaults?.postcode ?? "");
   const [country, setCountry] = useState(defaults?.country ?? "Australia");
-  const [countryTouched, setCountryTouched] = useState(Boolean(defaults?.country));
   const [cardNumber, setCardNumber] = useState("4242 4242 4242 4242");
   const [nameOnCard, setNameOnCard] = useState("");
   const [expiryMonth, setExpiryMonth] = useState("12");
@@ -60,14 +59,6 @@ export function CheckoutForm({
     []
   );
   const detectedCardBrand = useMemo(() => detectCardBrandFromPrefix(cardNumber), [cardNumber]);
-
-  useEffect(() => {
-    if (countryTouched) {
-      return;
-    }
-
-    setCountry(defaults?.country || inferCountryFromBrowser());
-  }, [countryTouched]);
 
   return (
     <div className="checkout-layout">
@@ -173,6 +164,17 @@ export function CheckoutForm({
           </p>
         </div>
 
+        {!isSignedInOwner ? (
+          <div className="checkout-returning-notice" role="note">
+            <strong>Already have an account?</strong>
+            <p>
+              If your email already has an active or expired subscription, please{" "}
+              <a href="/login">log in first</a> and renew from your account so your church team keeps using the same
+              resources and access.
+            </p>
+          </div>
+        ) : null}
+
         <section className="checkout-section">
           <div className="checkout-section-head">
             <ShoppingBag size={18} />
@@ -181,54 +183,95 @@ export function CheckoutForm({
               <p>{isSignedInOwner ? "We will renew your existing account." : "Create the account as part of checkout."}</p>
             </div>
           </div>
-          <div className="checkout-grid">
-            <label>
-              Account holder name
-              <input value={accountHolderName} onChange={(event) => setAccountHolderName(event.target.value)} required />
-            </label>
-            <label>
-              Church
-              <input value={churchName} onChange={(event) => setChurchName(event.target.value)} required />
-            </label>
-            <label>
-              Email address
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                required
-                readOnly={isSignedInOwner}
-              />
-            </label>
-            <label>
-              Phone
-              <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Optional" />
-            </label>
-          </div>
-          {!isSignedInOwner ? (
-            <div className="checkout-grid">
-              <label>
-                Password
-                <PasswordInput
-                  value={password}
-                  onChange={setPassword}
-                  placeholder="8+ chars, number, symbol"
-                  minLength={8}
-                  required
-                />
-              </label>
-              <label>
-                Confirm password
-                <PasswordInput
-                  value={confirmPassword}
-                  onChange={setConfirmPassword}
-                  placeholder="Repeat password"
-                  minLength={8}
-                  required
-                />
-              </label>
-            </div>
-          ) : null}
+          {isSignedInOwner ? (
+            <dl className="checkout-account-summary">
+              <div>
+                <dt>Account holder</dt>
+                <dd>{accountHolderName}</dd>
+              </div>
+              <div>
+                <dt>Church</dt>
+                <dd>{churchName}</dd>
+              </div>
+              <div>
+                <dt>Email address</dt>
+                <dd>{email}</dd>
+              </div>
+              {phone.trim() ? (
+                <div>
+                  <dt>Phone</dt>
+                  <dd>{phone}</dd>
+                </div>
+              ) : null}
+            </dl>
+          ) : (
+            <>
+              <div className="checkout-grid">
+                <label>
+                  Account holder name
+                  <input
+                    value={accountHolderName}
+                    onChange={(event) => setAccountHolderName(event.target.value)}
+                    required
+                  />
+                </label>
+                <label>
+                  Church
+                  <input
+                    value={churchName}
+                    onChange={(event) => setChurchName(event.target.value)}
+                    required
+                  />
+                </label>
+                <label>
+                  Email address
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    required
+                  />
+                </label>
+                <label>
+                  Phone
+                  <input
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value)}
+                    placeholder="Optional"
+                  />
+                </label>
+              </div>
+              <div className="checkout-grid">
+                <label>
+                  Password
+                  <PasswordInput
+                    value={password}
+                    onChange={setPassword}
+                    placeholder="8+ chars, number, symbol"
+                    autoComplete="new-password"
+                    minLength={8}
+                    pattern="(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}"
+                    required
+                    title={passwordRequirementText}
+                  />
+                </label>
+                <label>
+                  Confirm password
+                  <PasswordInput
+                    value={confirmPassword}
+                    onChange={setConfirmPassword}
+                    placeholder="Repeat password"
+                    autoComplete="new-password"
+                    minLength={8}
+                    pattern="(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}"
+                    required
+                    title={passwordRequirementText}
+                  />
+                </label>
+                <p className="checkout-password-help checkout-span-2">{passwordRequirementText}</p>
+              </div>
+            </>
+          )}
         </section>
 
         <section className="checkout-section">
@@ -236,7 +279,7 @@ export function CheckoutForm({
             <ShieldCheck size={18} />
             <div>
               <h2>Billing details</h2>
-              <p>This is what super admin will see on the purchase record.</p>
+              <p>This is what Admin will see on the purchase record.</p>
             </div>
           </div>
           <div className="checkout-grid">
@@ -281,10 +324,7 @@ export function CheckoutForm({
               Country
               <select
                 value={country}
-                onChange={(event) => {
-                  setCountry(event.target.value);
-                  setCountryTouched(true);
-                }}
+                onChange={(event) => setCountry(event.target.value)}
                 autoComplete="country-name"
                 required
               >
@@ -359,7 +399,7 @@ export function CheckoutForm({
 
         <button className="button button-primary checkout-submit" type="submit" disabled={isPending}>
           <LockKeyhole size={16} />
-          <span>{isPending ? "Completing purchase..." : `Complete purchase · ${formatCurrency(plan.annualPrice)}`}</span>
+          <span>{isPending ? "Completing purchase..." : `Complete purchase · ${formatCurrency(plan.annualPrice, plan.currency)}`}</span>
         </button>
         <p className="form-status">{message}</p>
       </form>
@@ -367,18 +407,11 @@ export function CheckoutForm({
       <aside className="panel checkout-summary">
         <span className="eyebrow">Order summary</span>
         <h2>{plan.name}</h2>
-        <p>{plan.audience}</p>
+        <div className="plan-summary" dangerouslySetInnerHTML={{ __html: plan.summaryHtml }} />
         <div className="checkout-summary-price">
-          <strong>{formatCurrency(plan.annualPrice)}</strong>
+          <strong>{formatCurrency(plan.annualPrice, plan.currency)}</strong>
           <span>per year</span>
         </div>
-        <ul className="feature-list">
-          <li>Full curriculum library included</li>
-          <li>{plan.studentRange}</li>
-          <li>Unlimited invited team accounts included</li>
-          <li>Owner account created during checkout</li>
-          <li>Super admin order record created automatically</li>
-        </ul>
         <div className="checkout-trust">
           <CheckCircle2 size={16} />
           <p>Ready for Stripe later. Running on a fake-card checkout path right now.</p>

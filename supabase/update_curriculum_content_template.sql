@@ -1,12 +1,14 @@
 begin;
 
-create or replace function public.build_curriculum_lesson_content(
+create schema if not exists nck;
+
+create or replace function nck.build_curriculum_lesson_content(
   lesson_title text,
   lesson_scripture text
 )
 returns text
 language plpgsql
-set search_path = public
+SET search_path = nck
 as $$
 declare
   theme_text text;
@@ -239,8 +241,8 @@ begin
 end;
 $$;
 
-update public.resources
-set description = public.build_curriculum_lesson_content(title, scripture)
+update nck.resources
+set description = nck.build_curriculum_lesson_content(title, scripture)
 where year_cycle in ('Year A', 'Year B', 'Year C');
 
 commit;

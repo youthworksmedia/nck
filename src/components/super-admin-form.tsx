@@ -67,7 +67,7 @@ export function SuperAdminForm() {
           required
         />
         <button type="submit" className="button button-primary" disabled={isPending}>
-          {isPending ? "Creating..." : "Create super admin"}
+          {isPending ? "Creating..." : "Create admin"}
         </button>
       </div>
       <p className="form-status form-status-small">{passwordRequirementText}</p>

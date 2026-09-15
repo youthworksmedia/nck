@@ -1,5 +1,9 @@
 project_id = "cfwjpyzhccdpodmuqmju"
 
+[api]
+schemas = ["nck", "public", "graphql_public"]
+extra_search_path = ["nck", "public", "extensions"]
+
 [functions.log-forecasts]
 verify_jwt = false
 

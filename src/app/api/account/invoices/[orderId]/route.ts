@@ -1,11 +1,12 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { NextResponse } from "next/server";
 
-import { plans } from "@/lib/plans";
+import { getPlans } from "@/lib/plans";
 import { formatLongDateWithOrdinal } from "@/lib/time";
-import { getCurrentUser } from "@/lib/portal";
+import { getCurrentOrganizationMembership } from "@/lib/portal";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { formatCurrency } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
@@ -15,26 +16,42 @@ type RouteContext = {
   }>;
 };
 
+type InvoiceOrder = {
+  id: string;
+  order_number: string;
+  organization_id: string | null;
+  account_holder_name: string;
+  account_holder_email: string;
+  church_name: string;
+  plan_tier: string;
+  amount: number;
+  currency: string;
+  payment_status: string;
+  payment_provider: string;
+  card_brand: string | null;
+  card_last4: string | null;
+  billing_address_line1: string;
+  billing_suburb: string;
+  billing_state: string;
+  billing_postcode: string;
+  billing_country: string;
+  billing_phone: string | null;
+  created_at: string;
+};
+
 export async function GET(_request: Request, context: RouteContext) {
-  const [supabase, adminSupabase, user] = await Promise.all([
+  const [supabase, adminSupabase, currentMembership] = await Promise.all([
     createSupabaseServerClient(),
     createSupabaseAdminClient(),
-    getCurrentUser()
+    getCurrentOrganizationMembership()
   ]);
+  const { user, membership } = currentMembership;
 
   if (!supabase || !adminSupabase || !user) {
     return NextResponse.json({ message: "Please sign in to download invoices." }, { status: 403 });
   }
 
-  const { data: ownerMembership } = await supabase
-    .from("organization_members")
-    .select("organization_id, role")
-    .eq("user_id", user.id)
-    .eq("role", "owner")
-    .limit(1)
-    .maybeSingle();
-
-  if (!ownerMembership?.organization_id) {
+  if (!membership?.organization_id || membership.role !== "owner") {
     return NextResponse.json({ message: "Only account holders can download invoices." }, { status: 403 });
   }
 
@@ -45,15 +62,15 @@ export async function GET(_request: Request, context: RouteContext) {
       "id, order_number, organization_id, account_holder_name, account_holder_email, church_name, plan_tier, amount, currency, payment_status, payment_provider, card_brand, card_last4, billing_address_line1, billing_suburb, billing_state, billing_postcode, billing_country, billing_phone, created_at"
     )
     .eq("id", orderId)
-    .eq("organization_id", ownerMembership.organization_id)
+    .eq("organization_id", membership.organization_id)
     .limit(1)
-    .maybeSingle();
+    .maybeSingle<InvoiceOrder>();
 
   if (error || !order) {
     return NextResponse.json({ message: "Invoice not found." }, { status: 404 });
   }
 
-  const pdf = await PDFDocument.create();
+  const [pdf, plans] = await Promise.all([PDFDocument.create(), getPlans()]);
   const page = pdf.addPage([595, 842]);
   const regular = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -111,7 +128,7 @@ export async function GET(_request: Request, context: RouteContext) {
   drawLine("Church", order.church_name);
   drawLine("Payment", `${order.card_brand ?? "Card"} ending in ${order.card_last4 ?? "----"}`);
   drawLine("Status", order.payment_status);
-  drawLine("Amount", `$${order.amount} ${String(order.currency).toUpperCase()}`);
+  drawLine("Amount", formatCurrency(order.amount, order.currency));
   drawLine(
     "Billing address",
     `${order.billing_address_line1}, ${order.billing_suburb}, ${order.billing_state} ${order.billing_postcode}, ${order.billing_country}`

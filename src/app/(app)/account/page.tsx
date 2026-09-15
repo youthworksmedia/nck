@@ -1,40 +1,30 @@
 import type { Metadata } from "next";
-import Image from "next/image";
+import type { Route } from "next";
 import Link from "next/link";
 import {
-  Blocks,
-  BadgeDollarSign,
-  Users,
-  BookOpenText,
-  CalendarDays,
-  Crown,
-  StarIcon,
-  CircleCheckBig,
-  Download,
+  CreditCard,
+  Quote,
+  Users
 } from "lucide-react";
 
-import { DeleteMemberButton } from "@/components/delete-member-button";
-import { InviteTeamForm } from "@/components/invite-team-form";
-import { SuperAdminAccountView } from "@/components/super-admin-account-view";
-import { TeamPasswordForm } from "@/components/team-password-form";
+import { DashboardSeenMarker } from "@/components/dashboard-seen-marker";
 import { isCurrentUserSuperAdmin } from "@/lib/admin-access";
-import { planAllowsLessonBuilder } from "@/lib/plans";
+import { getDashboardWelcomeSettings, getRotatingReturningWelcomeHtml } from "@/lib/dashboard-settings";
+import { getDashboardStateSnapshot } from "@/lib/dashboard-state";
 import {
-  getAccountHolderEmail,
-  getAccountPurchaseOrders,
-  getMembershipSnapshot,
   getCurrentUser,
-  getTeamMembers,
+  getMemberAccessSnapshot,
+  getMembershipSnapshot,
   isCurrentUserOwner
 } from "@/lib/portal";
-import { formatLongDate, formatLongDateWithOrdinal, getDaysUntil } from "@/lib/time";
-import { plans } from "@/lib/plans";
-import { formatCurrency } from "@/lib/utils";
+import { getPublicResources } from "@/lib/public-resources";
+import { getPlans } from "@/lib/plans";
 import { buildPrivateMetadata } from "@/lib/metadata";
+import { formatLongDateWithOrdinal } from "@/lib/time";
 
 export const metadata: Metadata = buildPrivateMetadata({
   title: "Dashboard",
-  description: "View your New Creation Kids dashboard, subscription details, team tools, and purchase history."
+  description: "View your New Creation Kids dashboard and current curriculum."
 });
 
 type AccountPageProps = {
@@ -44,151 +34,87 @@ type AccountPageProps = {
   }>;
 };
 
-const verseOptions = [
-  {
-    text: "Train up a child in the way he should go; even when he is old he will not depart from it.",
-    reference: "Proverbs 22:6"
-  },
-  {
-    text: "Let the little children come to me and do not hinder them, for to such belongs the kingdom of heaven.",
-    reference: "Matthew 19:14"
-  },
-  {
-    text: "Children are a heritage from the Lord, offspring a reward from him.",
-    reference: "Psalm 127:3"
-  },
-  {
-    text: "We will tell the next generation the praiseworthy deeds of the Lord, his power, and the wonders he has done.",
-    reference: "Psalm 78:4"
-  }
-];
-
-const currentCurriculumYear = "Year A";
-const currentTerms = ["Term 1", "Term 2", "Term 3", "Term 4"] as const;
-
-function parseShortDateValue(value: string) {
-  const [day = "1", month = "1", year = "00"] = value.split("/");
-  const fullYear = Number(year) < 100 ? 2000 + Number(year) : Number(year);
-
-  return new Date(fullYear, Number(month) - 1, Number(day));
-}
-
-function formatRelativeActivityTime(value: string) {
-  const joinedDate = parseShortDateValue(value);
-  const today = new Date();
-  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const startOfJoined = new Date(joinedDate.getFullYear(), joinedDate.getMonth(), joinedDate.getDate());
-  const diffInDays = Math.max(
-    0,
-    Math.round((startOfToday.getTime() - startOfJoined.getTime()) / (1000 * 60 * 60 * 24))
+function getTimeOfDayGreeting() {
+  const hour = Number(
+    new Intl.DateTimeFormat("en-AU", {
+      hour: "numeric",
+      hour12: false,
+      timeZone: "Australia/Sydney"
+    }).format(new Date())
   );
 
-  if (diffInDays === 0) {
-    return "Today";
+  if (hour < 12) {
+    return "Good morning";
   }
 
-  if (diffInDays === 1) {
-    return "Yesterday";
+  if (hour < 17) {
+    return "Good afternoon";
   }
 
-  return `${diffInDays} days ago`;
-}
-
-function formatShortOrderNumber(orderNumber: string) {
-  const trimmed = orderNumber.trim();
-  if (trimmed.length <= 7) {
-    return trimmed;
-  }
-
-  return `...${trimmed.slice(-7)}`;
+  return "Good evening";
 }
 
 export default async function AccountPage({ searchParams }: AccountPageProps) {
   const params = (await searchParams) ?? {};
-  const [membership, user, isOwner, teamMembers, accountHolderEmail, isSuperAdmin, purchaseOrders] = await Promise.all([
+  const [membership, access, user, isOwner, isSuperAdmin, plans, settings, resources] = await Promise.all([
     getMembershipSnapshot(),
+    getMemberAccessSnapshot(),
     getCurrentUser(),
     isCurrentUserOwner(),
-    getTeamMembers(),
-    getAccountHolderEmail(),
     isCurrentUserSuperAdmin(),
-    getAccountPurchaseOrders()
+    getPlans(),
+    getDashboardWelcomeSettings(),
+    getPublicResources()
   ]);
+  const dashboardState = await getDashboardStateSnapshot(resources);
 
-  if (isSuperAdmin) {
-    return <SuperAdminAccountView user={user} />;
-  }
-
-  const plan = plans.find((entry) => entry.id === membership.planTier);
-  const memberCount = isOwner ? teamMembers.length : membership.memberCount;
-  const daysRemaining = getDaysUntil(membership.renewalDate);
-  const canUseLessonBuilder = planAllowsLessonBuilder(membership.planTier);
-  const additionalTeamMembersAdded = teamMembers.filter((member) => member.role === "member").length;
-  const remainingAdditionalTeamMembers = Number.POSITIVE_INFINITY;
-  const getInitials = (name: string) =>
-    name
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? "")
-      .join("") || "TM";
-  const currentTeamMember = teamMembers.find(
-    (member) =>
-      member.userId === user?.id ||
-      member.email.toLowerCase() === user?.email?.toLowerCase()
-  );
-  const ownerTeamMember = teamMembers.find((member) => member.role === "owner");
-  const ownerName =
-    membership.accountHolderName ||
-    ownerTeamMember?.name ||
-    user?.email?.split("@")[0] ||
-    "Friend";
-  const accountHolderName = membership.accountHolderName || ownerTeamMember?.name || ownerName;
   const userFullName =
     user && "user_metadata" in user && typeof user.user_metadata?.full_name === "string"
       ? user.user_metadata.full_name
       : undefined;
+  const ownerName =
+    membership.accountHolderName ||
+    userFullName ||
+    user?.email?.split("@")[0] ||
+    "Friend";
   const currentMemberName =
-    currentTeamMember?.name ??
     userFullName ??
     user?.email?.split("@")[0] ??
     "Friend";
-  const planLabel = plan?.name ?? membership.planTier;
-  const accountContextLabel =
-    membership.subscriptionStatus === "inactive"
+  const displayName = isOwner ? ownerName : currentMemberName;
+  const greeting = getTimeOfDayGreeting();
+  const plan = plans.find((entry) => entry.id === membership.planTier);
+  const planLabel = plan?.name ?? "";
+  const accountContextLabel = isSuperAdmin
+    ? "Super admin access"
+    : membership.subscriptionStatus === "inactive"
       ? "No active membership"
-      : `${membership.churchName} · ${planLabel} plan`;
-  const recentTeamActivities = isOwner
-    ? [
-        {
-          name: ownerName,
-          initials: getInitials(ownerName),
-          avatarClassName: "account-team-member-avatar-0",
-          text: `${ownerName} opened the Curriculum Library`,
-          timeLabel: "Today"
-        },
-        ...teamMembers
-          .filter((member) => member.role !== "owner")
-          .slice(0, 2)
-          .map((member, index) => ({
-            name: member.name,
-            initials: getInitials(member.name),
-            avatarClassName: `account-team-member-avatar-${(index % 3) + 1}`,
-            text:
-              index === 0
-                ? `${member.name} joined your team`
-                : `${member.name} opened the curriculum library`,
-            timeLabel: formatRelativeActivityTime(member.joinedAt)
-          }))
-      ]
-    : [];
-  const verseOfTheDay =
-    verseOptions[
-      ((new Date().getDate() + new Date().getMonth()) % verseOptions.length + verseOptions.length) %
-        verseOptions.length
-    ];
+      : isOwner
+        ? [membership.churchName, planLabel ? `${planLabel} plan` : ""].filter(Boolean).join(" · ")
+        : membership.churchName;
+  const canShowDashboardActions = isOwner || isSuperAdmin;
+  const hasExpiredSubscription = Boolean(user && !access.hasActiveAccount && !isSuperAdmin);
+  const expiredDate = formatLongDateWithOrdinal(membership.renewalDate);
+  const expiredMessage = isOwner
+    ? "Please renew subscription for access to content."
+    : `Please contact account holder ${membership.accountHolderName ?? "Account holder"} from ${membership.churchName} for renewal.`;
+  const showFirstTimeWelcome = user && !dashboardState.hasSeenDashboard;
+  const verseOptions = settings.bibleVerses;
+  const returningWelcomeHtml = getRotatingReturningWelcomeHtml(settings);
+  const verseOfTheDay = verseOptions[
+    ((new Date().getDate() + new Date().getMonth()) % verseOptions.length + verseOptions.length) %
+      verseOptions.length
+  ];
+  const continueHref = dashboardState.lastResource
+    ? (`/resources/${dashboardState.lastResource.id}` as Route)
+    : null;
+  const lastResourceLabel = dashboardState.lastResource
+    ? `Week ${dashboardState.lastResource.lessonNumber ?? 1} - ${dashboardState.lastResource.title}`
+    : null;
+
   return (
     <main className="site-shell section account-page">
+      {showFirstTimeWelcome ? <DashboardSeenMarker /> : null}
       {params.checkout === "success" ? (
         <div className="panel checkout-success-banner">
           <strong>Purchase successful.</strong> Your annual membership is now active
@@ -196,494 +122,97 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
         </div>
       ) : null}
 
-      {isOwner ? (
-        <section className="account-owner-hero">
-          <div className="account-owner-hero-copy">
-            <p className="account-owner-hero-kicker">Welcome back,</p>
-            <div className="section-head app-page-head">
-              <div>
-                <h1>{ownerName}</h1>
-              </div>
+      <section className="dashboard-hero">
+        <div className="account-owner-hero-copy">
+          <div className="section-head app-page-head">
+            <div>
+              <h1>{greeting}, {displayName}</h1>
             </div>
-            <p className="account-owner-hero-summary">
-              {accountContextLabel}
-            </p>
           </div>
-          <div className="account-owner-hero-illustration" aria-hidden="true" />
-          <div className="button-row account-dashboard-actions">
-            <Link href="/resources" className="button button-primary">
-              <BookOpenText size={18} />
-              <span className="account-dashboard-action-copy">
-                <strong>Browse Library</strong>
-                <small>Curriculum &amp; resources</small>
-              </span>
-            </Link>
-            {canUseLessonBuilder ? (
-              <Link href="/lesson-builder" className="button button-primary">
-                <Blocks size={18} />
-                <span className="account-dashboard-action-copy">
-                  <strong>Create Lesson</strong>
-                  <small>Start a new lesson</small>
-                </span>
-              </Link>
-            ) : null}
-            <a href="#team-members-panel" className="button button-primary">
-              <Users size={18} />
-              <span className="account-dashboard-action-copy">
-                <strong>Manage Team</strong>
-                <small>{memberCount} invited accounts</small>
-              </span>
-            </a>
-          </div>
-        </section>
-      ) : (
-        <section className="account-owner-hero account-member-hero">
-          <div className="account-owner-hero-copy">
-            <p className="account-owner-hero-kicker">Welcome back,</p>
-            <div className="section-head app-page-head">
-              <div>
-                <h1>{currentMemberName}</h1>
-              </div>
-            </div>
-            <p className="account-owner-hero-summary">
-              {accountContextLabel}
-            </p>
-          </div>
-          <div className="account-owner-hero-illustration" aria-hidden="true" />
-          <div className="button-row account-dashboard-actions">
-            <Link href="/resources" className="button button-primary">
-              <BookOpenText size={18} />
-              <span className="account-dashboard-action-copy">
-                <strong>Browse Library</strong>
-                <small>Curriculum &amp; resources</small>
-              </span>
-            </Link>
-            {canUseLessonBuilder ? (
-              <Link href="/lesson-builder" className="button button-primary">
-                <Blocks size={18} />
-                <span className="account-dashboard-action-copy">
-                  <strong>Create Lesson</strong>
-                  <small>Start a new lesson</small>
-                </span>
-              </Link>
-            ) : null}
-            <a href="#team-members-panel" className="button button-primary">
-              <Users size={18} />
-              <span className="account-dashboard-action-copy">
-                <strong>My Team</strong>
-                <small>{membership.churchName}</small>
-              </span>
-            </a>
-          </div>
-        </section>
-      )}
-
-      <section className="account-current-lessons panel">
-        <div className="section-head">
-          <div>
-            <span className="eyebrow">Current curriculum</span>
-            <h2>{currentCurriculumYear}</h2>
-          </div>
-          <p>Admins can update which year is current. Choose a term to see the available lessons.</p>
-        </div>
-        <div className="account-current-term-grid">
-          {currentTerms.map((term) => (
-            <Link key={term} href="/resources" className="account-current-term-link">
-              <CalendarDays size={18} />
-              <span>{term}</span>
-            </Link>
-          ))}
+          <p className="account-owner-hero-summary">{accountContextLabel}</p>
         </div>
       </section>
 
-      <section className="dashboard-grid account-owner-grid">
-        {isOwner ? (
-          <article id="team-members-panel" className="account-card account-card-team">
-            <div className="account-team-head">
-              <div className="account-team-title-wrap">
-                <div className="account-team-title-icon" aria-hidden="true">
-                  <Image
-                    src="/account-team-header.png"
-                    alt=""
-                    width={46}
-                    height={46}
-                    className="account-team-title-image"
-                  />
-                </div>
-                <h2>Your Ministry Team</h2>
-              </div>
-            </div>
-            <div className="account-team-list">
-              {teamMembers.map((member, index) => {
-                const isSelf =
-                  member.userId === user?.id ||
-                  member.email.toLowerCase() === user?.email?.toLowerCase();
-
-                return (
-                  <div key={member.id} className="account-team-member-row">
-                    <div className={`account-team-member-avatar account-team-member-avatar-${index % 4}`}>
-                      {getInitials(member.name)}
-                    </div>
-                    <div className="account-team-member-copy">
-                      <div className="account-team-member-main">
-                        <strong>{member.name}</strong>
-                        <span
-                          className={`account-team-role-badge ${
-                            member.role === "owner"
-                              ? "account-team-role-badge-owner"
-                              : "account-team-role-badge-member"
-                          }`}
-                        >
-                          {member.role === "owner" ? "Account holder" : "Team member"}
-                        </span>
-                      </div>
-                      <span className="account-team-member-joined">Joined {member.joinedAt}</span>
-                    </div>
-                    <div className="account-team-member-actions">
-                      <TeamPasswordForm
-                        memberId={member.id}
-                        name={member.name}
-                        email={member.email}
-                        isSelf={isSelf}
-                      />
-                      <DeleteMemberButton
-                        memberId={member.id}
-                        email={member.email}
-                        disabled={isSelf || member.role === "owner"}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="account-team-add">
-              <InviteTeamForm remainingAdditionalTeamMembers={remainingAdditionalTeamMembers} />
-            </div>
-          </article>
-        ) : (
-          <article id="team-members-panel" className="account-card account-card-team">
-            <div className="account-team-head">
-              <div className="account-team-title-wrap">
-                <div className="account-team-title-icon" aria-hidden="true">
-                  <Image
-                    src="/account-team-header.png"
-                    alt=""
-                    width={46}
-                    height={46}
-                    className="account-team-title-image"
-                  />
-                </div>
-                <h2>Your Ministry Team</h2>
-              </div>
-            </div>
-            <div className="account-team-list">
-              {teamMembers.map((member, index) => (
-                <div key={member.id} className="account-team-member-row">
-                  <div className={`account-team-member-avatar account-team-member-avatar-${index % 4}`}>
-                    {getInitials(member.name)}
-                  </div>
-                  <div className="account-team-member-copy">
-                    <div className="account-team-member-main">
-                      <strong>{member.name}</strong>
-                      <span
-                        className={`account-team-role-badge ${
-                          member.role === "owner"
-                            ? "account-team-role-badge-owner"
-                            : "account-team-role-badge-member"
-                        }`}
-                      >
-                        {member.role === "owner" ? "Account holder" : "Team member"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </article>
-        )}
-
-        <article className="account-card account-card-overview">
+      {hasExpiredSubscription ? (
+        <section className="account-expired-content-notice panel" role="status">
+          <span className="eyebrow">Subscription expired</span>
+          <h2>Subscription has expired ({expiredDate}).</h2>
+          <p>{expiredMessage}</p>
           {isOwner ? (
-            <>
-              <div className="account-card-heading">
-                <h2>Subscription overview</h2>
-                <div className="account-card-heading-icon">
-                  <StarIcon size={18} fill="currentColor" strokeWidth={1.5} />
-                </div>
-              </div>
-              <div className="meta-grid account-overview-grid">
-                <div className="account-overview-tile account-overview-tile-wide">
-                  <div className="account-overview-plan-icon" aria-hidden="true">
-                    <Crown size={18} fill="currentColor" strokeWidth={1.5} />
-                  </div>
-                  <div className="account-overview-plan-copy">
-                    <strong>{plan?.name ?? membership.planTier}</strong>
-                    <span>{membership.churchName}</span>
-                  </div>
-                </div>
-                <div className="account-overview-tile account-overview-tile-highlight">
-                  <span className="pill">Invited accounts</span>
-                  <strong>
-                    {memberCount} <span className="account-overview-count-separator">of</span> unlimited
-                  </strong>
-                </div>
-                <div className="account-overview-tile">
-                  <span className="pill">Next renewal</span>
-                  <strong>{formatLongDateWithOrdinal(membership.renewalDate)}</strong>
-                  <span className="account-overview-note">({daysRemaining} days)</span>
-                </div>
-                <Link href={`/subscribe?tier=${membership.planTier}`} className="account-overview-tile account-overview-tile-link">
-                  <span className="pill">Plan</span>
-                  <div className="account-overview-status-row">
-                    <strong className="account-overview-status-line">
-                      <BadgeDollarSign size={18} />
-                      <span>Renew plan</span>
-                    </strong>
-                  </div>
-                </Link>
-                <div className="account-overview-tile">
-                  <span className="pill">Status</span>
-                  <div className="account-overview-status-row">
-                    <strong className="account-overview-status-line">
-                      {membership.subscriptionStatus === "active" ? (
-                        <span
-                          className="account-overview-status-dot account-overview-status-dot-active"
-                          aria-hidden="true"
-                        />
-                      ) : null}
-                      <span>{membership.subscriptionStatus}</span>
-                    </strong>
-                  </div>
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="account-card-heading">
-                <h2>Subscription overview</h2>
-                <div className="account-card-heading-icon">
-                  <StarIcon size={18} fill="currentColor" strokeWidth={1.5} />
-                </div>
-              </div>
-              <div className="meta-grid account-overview-grid">
-                <div className="account-overview-tile account-overview-tile-wide">
-                  <div className="account-overview-plan-icon" aria-hidden="true">
-                    <Crown size={18} fill="currentColor" strokeWidth={1.5} />
-                  </div>
-                  <div className="account-overview-plan-copy">
-                    <strong>{plan?.name ?? membership.planTier}</strong>
-                    <span>{membership.churchName}</span>
-                  </div>
-                </div>
-                <div className="account-overview-tile account-overview-tile-highlight">
-                  <span className="pill">Name</span>
-                  <span className="account-overview-note account-overview-note-strong">
-                    {accountHolderName}
-                  </span>
-                </div>
-                <div className="account-overview-tile">
-                  <span className="pill">Access</span>
-                  <strong>{formatLongDateWithOrdinal(membership.renewalDate)}</strong>
-                  <span className="account-overview-note">
-                    ({membership.subscriptionStatus === "active" ? `${daysRemaining} days` : "Inactive"})
-                  </span>
-                </div>
-                <Link href={`/subscribe?tier=${membership.planTier}`} className="account-overview-tile account-overview-tile-link">
-                  <span className="pill">Plan</span>
-                  <div className="account-overview-status-row">
-                    <strong className="account-overview-status-line">
-                      <BadgeDollarSign size={18} />
-                      <span>Renew plan</span>
-                    </strong>
-                  </div>
-                </Link>
-                <div className="account-overview-tile">
-                  <span className="pill">Status</span>
-                  <div className="account-overview-status-row">
-                    <strong className="account-overview-status-line">
-                      {membership.subscriptionStatus === "active" ? (
-                        <span
-                          className="account-overview-status-dot account-overview-status-dot-active"
-                          aria-hidden="true"
-                        />
-                      ) : null}
-                      <span>{membership.subscriptionStatus}</span>
-                    </strong>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
+            <Link href="/account/subscription" className="button button-primary account-expired-renew-button">
+              <CreditCard size={18} />
+              <span>Renew subscription</span>
+            </Link>
+          ) : null}
+        </section>
+      ) : null}
+
+      {showFirstTimeWelcome ? (
+        <section className="dashboard-onboarding-layout">
+          <article
+            className="dashboard-welcome-card dashboard-rich-content"
+            dangerouslySetInnerHTML={{ __html: settings.firstTimeHtml }}
+          />
+          {settings.introVideoUrl ? (
+            <a
+              href={settings.introVideoUrl}
+              className="dashboard-video-card"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span className="dashboard-video-play" aria-hidden="true" />
+              <span className="dashboard-video-eyebrow">Watch</span>
+              <strong>{settings.introVideoTitle}</strong>
+            </a>
+          ) : null}
+        </section>
+      ) : (
+        <section className={`dashboard-returning-layout ${canShowDashboardActions ? "dashboard-returning-layout-owner" : ""}`}>
+          <div className="dashboard-main-column">
+            <article
+              className="dashboard-welcome-card dashboard-rich-content dashboard-returning-card"
+              dangerouslySetInnerHTML={{ __html: returningWelcomeHtml }}
+            />
+            {continueHref && dashboardState.lastResource ? (
+              <Link href={continueHref} className="dashboard-continue-card">
+                <span>Last visit:</span>
+                <strong>{lastResourceLabel}</strong>
+              </Link>
+            ) : (
+              <Link href="/resources" className="dashboard-continue-card">
+                <span>Start with:</span>
+                <strong>Teach resources</strong>
+              </Link>
+            )}
+          </div>
+          {canShowDashboardActions ? (
+            <aside className="dashboard-owner-actions" aria-label="Account holder shortcuts">
+              <Link href="/account/team" className="dashboard-owner-action-card">
+                <Users size={22} />
+                <span>
+                  <strong>Manage Team</strong>
+                  <small>Add and edit accounts</small>
+                </span>
+              </Link>
+              <Link href="/account/subscription" className="dashboard-owner-action-card">
+                <CreditCard size={22} />
+                <span>
+                  <strong>Account</strong>
+                  <small>Subscription &amp; invoices</small>
+                </span>
+              </Link>
+            </aside>
+          ) : null}
+        </section>
+      )}
+
+      <section className="dashboard-grid account-history-links-grid account-history-links-grid-member">
+        <article className="account-card account-card-verse">
+          <span className="account-verse-icon" aria-hidden="true"><Quote size={24} fill="currentColor" /></span>
+          <blockquote className="account-verse-quote">"{verseOfTheDay.text}"</blockquote>
+          <p className="account-verse-reference">{verseOfTheDay.reference}</p>
         </article>
       </section>
-
-      {isOwner ? (
-        <>
-        <section className="dashboard-grid account-history-links-grid">
-          <article className="account-card account-card-purchases">
-            <div className="section-head account-purchases-head">
-              <div className="account-purchases-title">
-                <div className="account-purchases-title-icon" aria-hidden="true">
-                  <Image
-                    src="/account-purchase-header.png"
-                    alt=""
-                    width={46}
-                    height={46}
-                    className="account-purchases-title-image"
-                  />
-                </div>
-                <h2>Purchase history</h2>
-              </div>
-            </div>
-            {purchaseOrders.length ? (
-              <table className="list-table account-purchase-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Order</th>
-                    <th>Plan</th>
-                    <th>Total</th>
-                    <th>Invoice</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {purchaseOrders.map((order) => (
-                    <tr key={order.id}>
-                      <td>{formatLongDate(order.createdAt)}</td>
-                      <td>{formatShortOrderNumber(order.orderNumber)}</td>
-                      <td>{plans.find((entry) => entry.id === order.planTier)?.name ?? order.planTier}</td>
-                      <td>{formatCurrency(order.amount)}</td>
-                      <td>
-                        <a
-                          href={`/api/account/invoices/${order.id}`}
-                          className="button button-secondary account-invoice-button"
-                          title="Download invoice"
-                          aria-label="Download invoice"
-                        >
-                          <Download size={14} />
-                        </a>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p className="account-purchases-empty">No purchase history yet.</p>
-            )}
-          </article>
-          <div className="account-links-stack">
-            <article className="account-card account-card-verse">
-              <blockquote className="account-verse-quote">“{verseOfTheDay.text}”</blockquote>
-              <p className="account-verse-reference">{verseOfTheDay.reference}</p>
-            </article>
-          </div>
-        </section>
-        <section className="dashboard-grid account-bottom-grid">
-          <article className="account-card account-card-glance">
-            <div className="account-card-heading">
-              <h2>This week at a glance</h2>
-            </div>
-            <div className="account-glance-layout">
-              <div className="account-glance-grid">
-                <div className="account-glance-item account-glance-item-purple">
-                  <BookOpenText size={18} />
-                  <strong>Continue last lesson</strong>
-                  <span>
-                    {purchaseOrders[0]?.orderNumber
-                      ? formatShortOrderNumber(purchaseOrders[0].orderNumber)
-                      : "Curriculum ready to explore"}
-                  </span>
-                </div>
-                <div className="account-glance-item account-glance-item-green">
-                  <CalendarDays size={18} />
-                  <strong>Plan Sunday session</strong>
-                  <span>{plan?.name ?? "Membership active"}</span>
-                </div>
-                <div className="account-glance-item account-glance-item-pink">
-                  <Users size={18} />
-                  <strong>Assign team tasks</strong>
-                  <span>{additionalTeamMembersAdded} active team members</span>
-                </div>
-              </div>
-
-              <div className="account-glance-side">
-                <div className="account-card-heading">
-                  <h2>Recent activity</h2>
-                </div>
-                <ul className="account-activity-list">
-                  {recentTeamActivities.map((activity) => (
-                    <li key={`${activity.name}-${activity.timeLabel}`}>
-                      <span
-                        className={`account-activity-avatar ${activity.avatarClassName}`}
-                        aria-hidden="true"
-                      >
-                        {activity.initials}
-                      </span>
-                      <span className="account-activity-copy">{activity.text}</span>
-                      <span className="account-activity-time">{activity.timeLabel}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </article>
-        </section>
-        </>
-      ) : (
-        <>
-        <section className="dashboard-grid account-history-links-grid account-history-links-grid-member">
-          <article className="account-card account-card-verse">
-            <blockquote className="account-verse-quote">“{verseOfTheDay.text}”</blockquote>
-            <p className="account-verse-reference">{verseOfTheDay.reference}</p>
-          </article>
-        </section>
-        <section className="dashboard-grid account-bottom-grid">
-          <article className="account-card account-card-glance">
-            <div className="account-card-heading">
-              <h2>This week at a glance</h2>
-            </div>
-            <div className="account-glance-layout">
-              <div className="account-glance-grid">
-                <div className="account-glance-item account-glance-item-purple">
-                  <BookOpenText size={18} />
-                  <strong>Explore this week</strong>
-                  <span>{membership.churchName}</span>
-                </div>
-                <div className="account-glance-item account-glance-item-green">
-                  <CalendarDays size={18} />
-                  <strong>Plan Sunday session</strong>
-                  <span>{plan?.name ?? "Membership active"}</span>
-                </div>
-                <div className="account-glance-item account-glance-item-pink">
-                  <Users size={18} />
-                  <strong>Stay connected</strong>
-                  <span>{accountHolderEmail ?? "Your account holder is here to help"}</span>
-                </div>
-              </div>
-              <div className="account-glance-side">
-                <div className="account-card-heading">
-                  <h2>Recent activity</h2>
-                </div>
-                <ul className="account-activity-list">
-                  <li>
-                    <CircleCheckBig size={16} />
-                    <span>{currentMemberName} opened the dashboard today.</span>
-                  </li>
-                  <li>
-                    <CircleCheckBig size={16} />
-                    <span>Curriculum access is ready for your next lesson.</span>
-                  </li>
-                  <li>
-                    <CircleCheckBig size={16} />
-                    <span>Lesson planning tools are ready when your team needs them.</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </article>
-        </section>
-        </>
-      )}
     </main>
   );
 }

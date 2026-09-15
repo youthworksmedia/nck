@@ -9,7 +9,7 @@ export default function MarketingLayout({
   return (
     <div className="marketing-layout">
       <div className="marketing-hero-background" aria-hidden="true" />
-      <SiteHeader />
+      <SiteHeader showMarketingNav />
       {children}
       <SiteFooter />
     </div>

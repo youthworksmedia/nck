@@ -6,28 +6,29 @@ import {
   ChevronDown,
   FileText,
   FolderOpen,
-  Gamepad2,
   GripVertical,
-  Music4,
   Plus,
   Trash2,
-  Video,
+  Upload,
   X
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { ModalPortal } from "@/components/modal-portal";
+import { getResourceIconKey, getResourceIconPath, resourceIconOptions } from "@/lib/resource-icon-paths";
 import { formatDateTime } from "@/lib/time";
 import type { ResourceLibraryFile } from "@/lib/resource-assets";
-import type { LessonResourceAttachment, LessonResourceType } from "@/types";
+import type { LessonResourceAttachment, LessonResourceProgramKey, LessonResourceType } from "@/types";
 
 export type LessonResourceDraft = {
   id: string;
   type: LessonResourceType;
+  icon: string;
   name: string;
   filePath: string;
   fileName: string;
   sizeBytes?: number;
+  includeCopyright: boolean;
   file: File | null;
 };
 
@@ -38,23 +39,19 @@ type Props = {
   title?: string;
   description?: string;
   addLabel?: string;
+  program: LessonResourceProgramKey;
 };
-
-const typeOptions: Array<{ value: LessonResourceType; label: string }> = [
-  { value: "pdf", label: "PDF" },
-  { value: "game", label: "Game" },
-  { value: "music", label: "Music" },
-  { value: "video", label: "Video" }
-];
 
 function createDraft(): LessonResourceDraft {
   return {
     id: crypto.randomUUID(),
     type: "pdf",
+    icon: "lesson-guide",
     name: "",
     filePath: "",
     fileName: "",
     sizeBytes: undefined,
+    includeCopyright: false,
     file: null
   };
 }
@@ -72,25 +69,49 @@ function getFileType(name: string) {
   return extension || "FILE";
 }
 
-function ResourceTypeIcon({ type, size = 18 }: { type: LessonResourceType; size?: number }) {
-  if (type === "game") {
-    return <Gamepad2 size={size} />;
+function inferResourceTypeFromFileName(fileName: string): LessonResourceType {
+  const extension = fileName.split("?")[0]?.split(".").pop()?.toLowerCase() ?? "";
+
+  if (["mp3", "wav", "m4a", "aac"].includes(extension)) {
+    return "music";
   }
 
-  if (type === "music") {
-    return <Music4 size={size} />;
+  if (["mp4", "mov", "webm"].includes(extension)) {
+    return "video";
   }
 
-  if (type === "video") {
-    return <Video size={size} />;
+  if (["zip"].includes(extension)) {
+    return "game";
   }
 
-  return <FileText size={size} />;
+  return "pdf";
+}
+
+function isPdfFileName(fileName: string) {
+  return fileName.split("?")[0]?.toLowerCase().endsWith(".pdf") ?? false;
+}
+
+function ResourceIconPreview({
+  icon,
+  program
+}: {
+  icon: string;
+  program: LessonResourceProgramKey;
+}) {
+  const iconPath = getResourceIconPath("", null, program, icon);
+
+  if (!iconPath) {
+    return <FileText size={17} />;
+  }
+
+  return <img src={iconPath} alt="" />;
 }
 
 export function attachmentsToDrafts(attachments: LessonResourceAttachment[] = []): LessonResourceDraft[] {
   return attachments.map((attachment) => ({
     ...attachment,
+    icon: getResourceIconKey(attachment.name, attachment.fileName, attachment.icon) ?? "lesson-guide",
+    includeCopyright: attachment.includeCopyright ?? false,
     file: null
   }));
 }
@@ -105,7 +126,8 @@ export function AdminLessonResourceFields({
   files = [],
   title = "Lesson resources",
   description = "Add each downloadable file with the name and icon members should see.",
-  addLabel = "Add resource"
+  addLabel = "Add resource",
+  program
 }: Props) {
   const [browseDraftId, setBrowseDraftId] = useState<string | null>(null);
   const [draggedDraftId, setDraggedDraftId] = useState<string | null>(null);
@@ -179,6 +201,23 @@ export function AdminLessonResourceFields({
     setPage(1);
   }
 
+  function updateFileSelection(
+    id: string,
+    patch: Partial<Pick<LessonResourceDraft, "file" | "fileName" | "filePath" | "sizeBytes" | "name">>
+  ) {
+    const currentDraft = value.find((entry) => entry.id === id);
+    const nextFileName = patch.file?.name ?? patch.fileName ?? currentDraft?.fileName ?? "";
+    const nextType = inferResourceTypeFromFileName(nextFileName);
+
+    updateDraft(id, {
+      ...patch,
+      type: nextType,
+      includeCopyright: isPdfFileName(nextFileName)
+        ? currentDraft?.includeCopyright ?? false
+        : false
+    });
+  }
+
   return (
     <section className="admin-resource-files-editor">
       <div className="admin-resource-files-head">
@@ -228,10 +267,7 @@ export function AdminLessonResourceFields({
             >
               <GripVertical size={18} />
             </button>
-            <div className="admin-resource-file-icon" aria-hidden="true">
-              <ResourceTypeIcon type={entry.type} />
-            </div>
-            <div>
+            <div className="admin-resource-file-name-field">
               <label className="admin-field-label" htmlFor={`resource-file-name-${entry.id}`}>
                 Name
               </label>
@@ -243,7 +279,7 @@ export function AdminLessonResourceFields({
                 onChange={(event) => updateDraft(entry.id, { name: event.target.value })}
               />
             </div>
-            <div>
+            <div className="admin-resource-file-type-field">
               <label className="admin-field-label" id={`resource-file-type-label-${entry.id}`}>
                 Icon
               </label>
@@ -265,45 +301,63 @@ export function AdminLessonResourceFields({
                     setOpenTypeMenuId((current) => (current === entry.id ? null : entry.id))
                   }
                 >
-                  <span>{typeOptions.find((option) => option.value === entry.type)?.label ?? "PDF"}</span>
-                  <ResourceTypeIcon type={entry.type} size={17} />
+                  <span>
+                    {resourceIconOptions.find((option) => option.value === entry.icon)?.label ?? "Choose icon"}
+                  </span>
+                  <ResourceIconPreview icon={entry.icon} program={program} />
                   <ChevronDown size={17} />
                 </button>
                 {openTypeMenuId === entry.id ? (
                   <div className="admin-resource-type-options" role="listbox" tabIndex={-1}>
-                    {typeOptions.map((option) => (
+                    {resourceIconOptions.map((option) => (
                       <button
                         key={option.value}
                         type="button"
                         className={`admin-resource-type-option ${
-                          option.value === entry.type ? "admin-resource-type-option-active" : ""
+                          option.value === entry.icon ? "admin-resource-type-option-active" : ""
                         }`}
                         role="option"
-                        aria-selected={option.value === entry.type}
+                        aria-selected={option.value === entry.icon}
                         onClick={() => {
-                          updateDraft(entry.id, { type: option.value });
+                          updateDraft(entry.id, {
+                            icon: option.value
+                          });
                           setOpenTypeMenuId(null);
                         }}
                       >
                         <span>{option.label}</span>
-                        <ResourceTypeIcon type={option.value} size={17} />
+                        <ResourceIconPreview icon={option.value} program={program} />
                       </button>
                     ))}
                   </div>
                 ) : null}
               </div>
             </div>
-            <div>
+            <div className="admin-resource-copyright-cell">
+              {isPdfFileName(entry.file?.name ?? entry.fileName) ? (
+                <label className="admin-resource-copyright-toggle">
+                  <span>©</span>
+                  <input
+                    type="checkbox"
+                    checked={entry.includeCopyright}
+                    onChange={(event) => updateDraft(entry.id, { includeCopyright: event.target.checked })}
+                    aria-label={`Add copyright footer to ${entry.name || `resource file ${index + 1}`}`}
+                  />
+                </label>
+              ) : null}
+            </div>
+            <div className="admin-resource-file-picker">
               <label className="admin-field-label" htmlFor={`resource-file-upload-${entry.id}`}>
                 File
               </label>
               <div className="asset-picker-actions">
                 <input
                   id={`resource-file-upload-${entry.id}`}
+                  className="admin-resource-native-file"
                   type="file"
                   onChange={(event) => {
                     const file = event.target.files?.[0] ?? null;
-                    updateDraft(entry.id, {
+                    updateFileSelection(entry.id, {
                       file,
                       fileName: file?.name ?? entry.fileName,
                       filePath: file ? "" : entry.filePath,
@@ -311,18 +365,31 @@ export function AdminLessonResourceFields({
                     });
                   }}
                 />
+                <label
+                  className="button button-secondary icon-only-button admin-resource-upload-button"
+                  htmlFor={`resource-file-upload-${entry.id}`}
+                  aria-label={`Choose file for ${entry.name || `resource file ${index + 1}`}`}
+                  title="Choose file"
+                >
+                  <Upload size={16} />
+                </label>
                 <button
                   type="button"
-                  className="button button-secondary"
+                  className="button button-secondary icon-only-button"
                   onClick={() => openBrowse(entry.id)}
+                  aria-label={`Browse files for ${entry.name || `resource file ${index + 1}`}`}
+                  title="Browse"
                 >
                   <FolderOpen size={16} />
-                  <span>Browse</span>
                 </button>
               </div>
-              {entry.fileName && !entry.file ? (
-                <p className="admin-resource-current-file">Current: {entry.fileName}</p>
-              ) : null}
+              <p className="admin-resource-current-file">
+                {entry.file
+                  ? `Selected: ${entry.file.name}`
+                  : entry.fileName
+                    ? `Current: ${entry.fileName}`
+                    : "No file selected"}
+              </p>
             </div>
             <div className="admin-resource-file-actions">
               <button
@@ -405,7 +472,7 @@ export function AdminLessonResourceFields({
                         type="button"
                         className="button button-primary"
                         onClick={() => {
-                          updateDraft(browsingDraft.id, {
+                          updateFileSelection(browsingDraft.id, {
                             file: null,
                             filePath: file.path,
                             fileName: file.name,
@@ -451,7 +518,7 @@ export function AdminLessonResourceFields({
                   type="button"
                   className="button button-secondary"
                   onClick={() => {
-                    updateDraft(browsingDraft.id, {
+                    updateFileSelection(browsingDraft.id, {
                       file: null,
                       filePath: "",
                       fileName: "",

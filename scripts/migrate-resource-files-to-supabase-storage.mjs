@@ -5,7 +5,7 @@ import path from "node:path";
 const projectRoot = process.cwd();
 const envPath = path.join(projectRoot, ".env.local");
 const uploadRoot = path.join(projectRoot, "private-uploads", "resources");
-const bucketName = process.env.SUPABASE_RESOURCE_BUCKET || "resource-files";
+const bucketName = process.env.SUPABASE_RESOURCE_BUCKET || "nck-resource-files";
 
 function loadEnvFile(contents) {
   for (const line of contents.split(/\r?\n/)) {
@@ -89,6 +89,9 @@ if (!supabaseUrl || !serviceRoleKey) {
 }
 
 const supabase = createClient(supabaseUrl, serviceRoleKey, {
+  db: {
+    schema: "nck"
+  },
   auth: {
     autoRefreshToken: false,
     persistSession: false

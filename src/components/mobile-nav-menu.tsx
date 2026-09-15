@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { useState } from "react";
-import { CreditCard, LayoutDashboard } from "lucide-react";
+import { CreditCard, Eye, LayoutDashboard } from "lucide-react";
 
 import { LogoutButton } from "@/components/logout-button";
 
@@ -56,9 +56,13 @@ export function MobileNavMenu({ items, isLoggedIn }: Props) {
                 </>
               ) : (
                 <>
-                  <Link href="/subscribe" className="mobile-dashboard-link" onClick={() => setIsOpen(false)}>
+                  <Link href="/#subscription-plans" className="mobile-dashboard-link" onClick={() => setIsOpen(false)}>
                     <CreditCard size={16} />
                     <span>Subscribe</span>
+                  </Link>
+                  <Link href="/resources" className="mobile-dashboard-link" onClick={() => setIsOpen(false)}>
+                    <Eye size={16} />
+                    <span>Preview</span>
                   </Link>
                   <Link href="/login" onClick={() => setIsOpen(false)}>Login</Link>
                 </>

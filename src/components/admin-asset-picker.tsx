@@ -3,6 +3,7 @@
 import { FolderOpen, Upload, X } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 
+import { ModalPortal } from "@/components/modal-portal";
 import { formatDateTime } from "@/lib/time";
 import type { ResourceAssetKey, ResourceLibraryFile } from "@/lib/resource-assets";
 
@@ -101,6 +102,7 @@ export function AdminAssetPicker({
       </div>
 
       {isOpen ? (
+        <ModalPortal>
         <div className="modal-backdrop" role="presentation" onClick={() => setIsOpen(false)}>
           <div className="modal-card asset-library-modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-head">
@@ -146,6 +148,7 @@ export function AdminAssetPicker({
             </div>
           </div>
         </div>
+        </ModalPortal>
       ) : null}
     </div>
   );

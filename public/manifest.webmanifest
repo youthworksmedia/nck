@@ -1,8 +1,20 @@
 {
-  "name": "Mollersphere",
-  "short_name": "Mollersphere",
-  "start_url": "/weather",
+  "name": "New Creation Kids",
+  "short_name": "NCK",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#14365d",
-  "theme_color": "#14365d"
+  "theme_color": "#14365d",
+  "icons": [
+    {
+      "src": "/nck-logo.png",
+      "sizes": "160x160",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
 }

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { AutoPrint } from "@/components/auto-print";
 import { PrintResourceButton } from "@/components/print-resource-button";
+import { normalizeCurriculumSection, normalizeCurriculumYear } from "@/lib/curriculum";
 import { buildPrivateMetadata } from "@/lib/metadata";
 import { getResources } from "@/lib/portal";
 import { formatLessonContentHtml } from "@/lib/resource-content";
@@ -34,8 +35,8 @@ export default async function CustomPackPage({ searchParams }: Props) {
   const params = await searchParams;
   const kind = params.kind === "workbook" ? "workbook" : params.kind === "manual" ? "manual" : null;
   const ids = cleanIds(params.ids);
-  const year = params.year ?? "Year A";
-  const term = params.term ?? "Term 1";
+  const year = normalizeCurriculumYear(params.year);
+  const term = normalizeCurriculumSection(params.term);
   const shouldAutoPrint = params.autoprint === "1";
 
   if (!kind || !ids.length) {
@@ -47,7 +48,9 @@ export default async function CustomPackPage({ searchParams }: Props) {
     .map((id) => resources.find((resource) => resource.id === id))
     .filter((resource): resource is NonNullable<typeof resource> => Boolean(resource))
     .filter(
-      (resource) => (resource.yearCycle ?? "Year A") === year && (resource.term ?? "Term 1") === term
+      (resource) =>
+        normalizeCurriculumYear(resource.yearCycle) === year &&
+        normalizeCurriculumSection(resource.term) === term
     )
     .sort((a, b) => (a.lessonNumber ?? 0) - (b.lessonNumber ?? 0));
 
@@ -80,7 +83,7 @@ export default async function CustomPackPage({ searchParams }: Props) {
             <article key={resource.id} className="custom-pack-lesson">
               <header className="custom-pack-lesson-head">
                 <h2>
-                  Lesson #{resource.lessonNumber ?? 1} - {resource.title}
+                  Week {resource.lessonNumber ?? 1} - {resource.title}
                 </h2>
                 {resource.scripture ? <p>{resource.scripture}</p> : null}
               </header>

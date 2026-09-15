@@ -7,20 +7,26 @@ type PasswordInputProps = {
   id?: string;
   value: string;
   onChange: (value: string) => void;
+  autoComplete?: string;
   placeholder?: string;
   minLength?: number;
+  pattern?: string;
   required?: boolean;
   disabled?: boolean;
+  title?: string;
 };
 
 export function PasswordInput({
   id,
   value,
   onChange,
+  autoComplete = "current-password",
   placeholder = "Password",
   minLength,
+  pattern,
   required,
-  disabled
+  disabled,
+  title
 }: PasswordInputProps) {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -29,13 +35,15 @@ export function PasswordInput({
       <input
         id={id}
         type={isVisible ? "text" : "password"}
-        autoComplete="current-password"
+        autoComplete={autoComplete}
         spellCheck={false}
         placeholder={placeholder}
         value={value}
         minLength={minLength}
+        pattern={pattern}
         required={required}
         disabled={disabled}
+        title={title}
         onChange={(event) => onChange(event.target.value)}
       />
       <button

@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { isCurrentUserSuperAdmin } from "@/lib/admin-access";
+import { curriculumSections, curriculumYears, normalizeCurriculumSection, normalizeCurriculumYear } from "@/lib/curriculum";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const schema = z.object({
-  yearCycle: z.enum(["Year A", "Year B", "Year C"]),
-  term: z.enum(["Term 1", "Term 2", "Term 3", "Term 4"]),
+  yearCycle: z.preprocess((value) => normalizeCurriculumYear(String(value ?? "")), z.enum(curriculumYears)),
+  term: z.preprocess((value) => normalizeCurriculumSection(String(value ?? "")), z.enum(curriculumSections)),
   content: z.string()
 });
 

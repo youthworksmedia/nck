@@ -2,6 +2,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { isCurrentUserSuperAdmin } from "@/lib/admin-access";
+import {
+  curriculumSections,
+  curriculumSectionStorageValues,
+  curriculumYears,
+  curriculumYearStorageValues,
+  normalizeCurriculumSection,
+  normalizeCurriculumYear
+} from "@/lib/curriculum";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 function isMissingColumn(errorMessage: string | undefined, column: string) {
@@ -9,8 +17,8 @@ function isMissingColumn(errorMessage: string | undefined, column: string) {
 }
 
 const schema = z.object({
-  yearCycle: z.enum(["Year A", "Year B", "Year C"]),
-  term: z.enum(["Term 1", "Term 2", "Term 3", "Term 4"]),
+  yearCycle: z.preprocess((value) => normalizeCurriculumYear(String(value ?? "")), z.enum(curriculumYears)),
+  term: z.preprocess((value) => normalizeCurriculumSection(String(value ?? "")), z.enum(curriculumSections)),
   orderedIds: z.array(z.string().uuid()).min(1)
 });
 
@@ -36,8 +44,8 @@ export async function POST(request: Request) {
   const { data: matchingLessons, error: listError } = await adminSupabase
     .from("resources")
     .select("id")
-    .eq("year_cycle", payload.data.yearCycle)
-    .eq("term", payload.data.term);
+    .in("year_cycle", curriculumYearStorageValues(payload.data.yearCycle))
+    .in("term", curriculumSectionStorageValues(payload.data.term));
 
   if (listError) {
     return NextResponse.json({ message: listError.message }, { status: 400 });

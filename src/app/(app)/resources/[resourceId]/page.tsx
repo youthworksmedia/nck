@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { ArrowLeft, Download, FileText, Gamepad2, Music4, Video } from "lucide-react";
+import type { Route } from "next";
+import { notFound, redirect } from "next/navigation";
 
-import { PrintResourceButton } from "@/components/print-resource-button";
+import { ResourceEntryContent } from "@/components/resource-entry-content";
+import { ResourceVisitTracker } from "@/components/resource-visit-tracker";
 import { formatLessonContentHtml } from "@/lib/resource-content";
-import { getResources } from "@/lib/portal";
-import type { LessonResourceType } from "@/types";
+import { getMemberAccessSnapshot } from "@/lib/portal";
+import { getPublicResources } from "@/lib/public-resources";
+import { normalizeCurriculumSection, normalizeCurriculumYear } from "@/lib/curriculum";
+import { trackLastAccessedResource } from "@/lib/dashboard-state";
 
 type Props = {
   params: Promise<{
@@ -16,7 +18,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { resourceId } = await params;
-  const resources = await getResources();
+  const resources = await getPublicResources();
   const resource = resources.find((entry) => entry.id === resourceId);
 
   if (!resource) {
@@ -32,10 +34,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  const lessonLabel = `Lesson #${resource.lessonNumber ?? 1} - ${resource.title}`;
+  const lessonLabel = `Week ${resource.lessonNumber ?? 1} - ${resource.title}`;
+  const year = normalizeCurriculumYear(resource.yearCycle);
+  const term = normalizeCurriculumSection(resource.term);
   const description = resource.scripture
-    ? `${resource.scripture} · ${resource.yearCycle ?? "Year A"} · ${resource.term ?? "Term 1"}`
-    : `${resource.yearCycle ?? "Year A"} · ${resource.term ?? "Term 1"} curriculum lesson`;
+    ? `${resource.scripture} · ${year} · ${term}`
+    : `${year} · ${term} curriculum lesson`;
 
   return {
     title: lessonLabel,
@@ -51,81 +55,57 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ResourceEntryPage({ params }: Props) {
   const { resourceId } = await params;
-  const resources = await getResources();
+  const [resources, access] = await Promise.all([
+    getPublicResources(),
+    getMemberAccessSnapshot()
+  ]);
   const resource = resources.find((entry) => entry.id === resourceId);
 
   if (!resource) {
     notFound();
   }
 
+  if (access.user && !access.hasActiveAccount) {
+    redirect("/account");
+  }
+
+  if (access.user && access.hasActiveAccount) {
+    await trackLastAccessedResource(resource.id);
+  }
+
+  const year = normalizeCurriculumYear(resource.yearCycle);
+  const term = normalizeCurriculumSection(resource.term);
+  const canDownload = Boolean(access.user && access.hasActiveAccount);
+  const loginHref = `/login?next=${encodeURIComponent(`/resources/${resource.id}`)}` as Route;
+  const sameSectionResources = resources
+    .filter(
+      (entry) =>
+        normalizeCurriculumYear(entry.yearCycle) === year &&
+        normalizeCurriculumSection(entry.term) === term
+    )
+    .sort((a, b) => (a.lessonNumber ?? 0) - (b.lessonNumber ?? 0));
+  const currentIndex = sameSectionResources.findIndex((entry) => entry.id === resource.id);
+  const previousLesson = currentIndex >= 0 ? sameSectionResources[currentIndex - 1] ?? null : null;
+  const nextLesson = currentIndex >= 0 ? sameSectionResources[currentIndex + 1] ?? null : null;
+  const resourcesHref = `/resources?year=${encodeURIComponent(year)}&section=${encodeURIComponent(term)}` as Route;
+
   return (
     <main className="site-shell section">
-      <section className="panel resource-entry-panel">
-        <div className="section-head app-page-head">
-          <div>
-            <span className="eyebrow">{resource.yearCycle ?? "Year A"} · {resource.term ?? "Term 1"}</span>
-            <h1>
-              Lesson #{resource.lessonNumber ?? 1} - {resource.title}
-            </h1>
-            {resource.scripture ? <p className="resource-entry-scripture">{resource.scripture}</p> : null}
-          </div>
-        </div>
-        <div className="resource-entry-layout">
-          <div
-            className="resource-html"
-            dangerouslySetInnerHTML={{ __html: formatLessonContentHtml(resource.description) }}
+      {access.user && access.hasActiveAccount ? <ResourceVisitTracker resourceId={resource.id} /> : null}
+      <section className="resource-browser-layout">
+        <article className="panel resource-entry-panel">
+          <ResourceEntryContent
+            canAccessPodcast={canDownload}
+            canDownload={canDownload}
+            descriptionHtml={formatLessonContentHtml(resource.description)}
+            loginHref={loginHref}
+            nextLesson={nextLesson}
+            previousLesson={previousLesson}
+            resource={resource}
+            resourcesHref={resourcesHref}
           />
-          <aside className="resource-entry-files" aria-label="Lesson resources">
-            <h2>Resources</h2>
-            {resource.attachments?.length ? (
-              <div className="resource-entry-file-list">
-                {resource.attachments.map((attachment) => (
-                  <div className="resource-entry-file-card" key={attachment.id}>
-                    <div className="resource-entry-file-copy">
-                      <span className="resource-entry-file-icon" aria-hidden="true">
-                        <ResourceTypeIcon type={attachment.type} size={18} />
-                      </span>
-                      <span>{attachment.name}</span>
-                    </div>
-                    <a
-                      href={`/api/resources/${resource.id}/download?asset=${encodeURIComponent(attachment.id)}`}
-                      className="button button-primary resource-entry-download-button"
-                    >
-                      <Download size={16} />
-                      <span>Download</span>
-                    </a>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p>No files have been added to this lesson yet.</p>
-            )}
-          </aside>
-        </div>
-        <div className="resource-entry-back resource-entry-actions-bottom">
-          <Link href="/resources" className="button button-secondary">
-            <ArrowLeft size={16} />
-            Back to Curriculum Library
-          </Link>
-          <PrintResourceButton />
-        </div>
+        </article>
       </section>
     </main>
   );
-}
-
-function ResourceTypeIcon({ type, size }: { type: LessonResourceType; size: number }) {
-  if (type === "game") {
-    return <Gamepad2 size={size} />;
-  }
-
-  if (type === "music") {
-    return <Music4 size={size} />;
-  }
-
-  if (type === "video") {
-    return <Video size={size} />;
-  }
-
-  return <FileText size={size} />;
 }

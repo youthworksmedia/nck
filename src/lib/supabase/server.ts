@@ -12,6 +12,9 @@ export const createSupabaseServerClient = cache(async function createSupabaseSer
   }
 
   return createServerClient(publicEnv.supabaseUrl, publicEnv.supabaseAnonKey, {
+    db: {
+      schema: "nck"
+    },
     cookies: {
       getAll() {
         return cookieStore.getAll();

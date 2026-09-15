@@ -4,9 +4,6 @@ import { Mail } from "lucide-react";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 
-import { hasSupabaseEnv, publicEnv } from "@/lib/public-env";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-
 export function MissingPasswordForm() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -20,22 +17,21 @@ export function MissingPasswordForm() {
         setMessage("");
 
         startTransition(async () => {
-          if (!hasSupabaseEnv) {
-            setMessage("Add Supabase environment variables to enable password reset emails.");
-            return;
-          }
-
-          const supabase = createSupabaseBrowserClient();
-          const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${publicEnv.siteUrl}/auth/callback?next=/reset-password`
+          const response = await fetch("/api/auth/reset-password-email", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ email })
           });
+          const payload = await response.json();
 
-          if (error) {
-            setMessage(error.message);
+          if (!response.ok) {
+            setMessage(payload.message ?? "Password reset email could not be sent.");
             return;
           }
 
-          setMessage("If this email is registered, a password reset link has been sent.");
+          setMessage(payload.message);
         });
       }}
     >

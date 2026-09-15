@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 
-import { parseLessonResourceFiles } from "@/lib/lesson-resource-files";
+import { isCurrentUserSuperAdmin } from "@/lib/admin-access";
+import { getLessonResourceAttachmentsByProgram, parseLessonResourcePayload } from "@/lib/lesson-resource-files";
 import { downloadStoredResourceFile } from "@/lib/resource-assets";
-import { getCurrentUser, getMembershipSnapshot } from "@/lib/portal";
+import { addLicensedFooterToPdf } from "@/lib/resource-pdf-footer";
+import { getCurrentOrganizationMembership, getCurrentUser, getMembershipSnapshot } from "@/lib/portal";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import type { LessonResourceProgramKey } from "@/types";
 
 export const runtime = "nodejs";
 
@@ -20,15 +23,24 @@ const assetColumns = {
 } as const;
 
 export async function GET(request: Request, context: RouteContext) {
-  const asset = new URL(request.url).searchParams.get("asset");
+  const url = new URL(request.url);
+  const asset = url.searchParams.get("asset");
+  const programParam = url.searchParams.get("program");
+  const isPreview = url.searchParams.get("preview") === "1";
+  const program: LessonResourceProgramKey = programParam === "preschool" ? "preschool" : "schoolAge";
 
   if (!asset) {
     return NextResponse.json({ message: "Choose a valid download asset." }, { status: 400 });
   }
 
-  const [user, membership] = await Promise.all([getCurrentUser(), getMembershipSnapshot()]);
+  const [user, membership, organizationMembership, isSuperAdmin] = await Promise.all([
+    getCurrentUser(),
+    getMembershipSnapshot(),
+    getCurrentOrganizationMembership(),
+    isCurrentUserSuperAdmin()
+  ]);
 
-  if (!user || !["active", "trialing"].includes(membership.subscriptionStatus)) {
+  if (!user || (!isSuperAdmin && !["active", "trialing"].includes(membership.subscriptionStatus))) {
     return NextResponse.json({ message: "Active membership required." }, { status: 403 });
   }
 
@@ -43,7 +55,7 @@ export async function GET(request: Request, context: RouteContext) {
   const { data: resource, error } = await adminSupabase
     .from("resources")
     .select(
-      "id, file_url, music_file_path, music_file_name, worksheet_file_path, worksheet_file_name, manual_file_path, manual_file_name, published"
+      "id, lesson_number, file_url, music_file_path, music_file_name, worksheet_file_path, worksheet_file_name, manual_file_path, manual_file_name, published"
     )
     .eq("id", resourceId)
     .eq("published", true)
@@ -56,15 +68,20 @@ export async function GET(request: Request, context: RouteContext) {
 
   let filePath: string | null = null;
   let fileName = `${asset}.bin`;
+  let includeCopyright = false;
 
   if (asset in assetColumns) {
     const { path: pathColumn, name: nameColumn } = assetColumns[asset as keyof typeof assetColumns];
     filePath = resource[pathColumn as keyof typeof resource] as string | null;
     fileName = (resource[nameColumn as keyof typeof resource] as string | null) ?? fileName;
   } else {
-    const attachment = parseLessonResourceFiles(resource.file_url, resource).find((entry) => entry.id === asset);
+    const payload = parseLessonResourcePayload(resource.file_url, resource);
+    const attachment = getLessonResourceAttachmentsByProgram(payload, program, resource.lesson_number).find(
+      (entry) => entry.id === asset
+    );
     filePath = attachment?.filePath ?? null;
     fileName = attachment?.fileName ?? attachment?.name ?? fileName;
+    includeCopyright = attachment?.type === "pdf" && attachment.includeCopyright === true;
   }
 
   if (!filePath) {
@@ -78,10 +95,32 @@ export async function GET(request: Request, context: RouteContext) {
       return NextResponse.json({ message: "Could not open this file." }, { status: 404 });
     }
 
-    return new NextResponse(Buffer.from(storedFile.bytes), {
+    const extension = fileName.split(".").pop()?.toLowerCase() ?? "";
+    const isPreviewable = ["pdf", "png", "jpg", "jpeg", "gif", "webp", "svg"].includes(extension);
+
+    if (isPreview && !isPreviewable) {
+      return NextResponse.json({ message: "This file cannot be previewed." }, { status: 415 });
+    }
+
+    if (!isPreview && organizationMembership.membership?.organization_id) {
+      await adminSupabase.from("resource_downloads").insert({
+        resource_id: resource.id,
+        organization_id: organizationMembership.membership.organization_id,
+        user_id: user.id
+      });
+    }
+
+    const responseBytes = await addLicensedFooterToPdf(storedFile.bytes, {
+      contentType: storedFile.contentType,
+      fileName,
+      membership,
+      enabled: includeCopyright
+    });
+
+    return new NextResponse(Buffer.from(responseBytes), {
       headers: {
         "Content-Type": storedFile.contentType,
-        "Content-Disposition": `attachment; filename="${encodeURIComponent(fileName)}"`,
+        "Content-Disposition": `${isPreview ? "inline" : "attachment"}; filename="${encodeURIComponent(fileName)}"`,
         "Cache-Control": "private, no-store"
       }
     });

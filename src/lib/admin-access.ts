@@ -1,6 +1,19 @@
+import { cache } from "react";
+
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { parseLessonResourceFiles } from "@/lib/lesson-resource-files";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { parseLessonResourcePayload } from "@/lib/lesson-resource-files";
+import { getStoredResourceFileSizes } from "@/lib/resource-assets";
+import {
+  curriculumSectionStorageValues,
+  curriculumYearStorageValues,
+  isCurrentCurriculumSection,
+  isCurrentCurriculumYear,
+  normalizeCurriculumSection,
+  normalizeCurriculumYear
+} from "@/lib/curriculum";
+import { getCurrentUser } from "@/lib/portal";
+import { defaultPlans, normalizeProductRow, type Plan } from "@/lib/plans";
+import { withTiming } from "@/lib/timing";
 import { formatShortDate } from "@/lib/time";
 import type {
   AccountHolderSummary,
@@ -11,6 +24,16 @@ import type {
   SuperAdminSummary
 } from "@/types";
 
+export type AdminOverviewMetrics = {
+  resources: number;
+  selectedLessons: number;
+  products: number;
+  accountHolders: number;
+  subAccounts: number;
+  orders: number;
+  paidOrders: number;
+};
+
 function normalizeOrganizationName(name?: string | null) {
   if (!name) {
     return "New Creation Kids";
@@ -19,34 +42,28 @@ function normalizeOrganizationName(name?: string | null) {
   return name;
 }
 
-export async function isCurrentUserSuperAdmin() {
-  const supabase = await createSupabaseServerClient();
+export const isCurrentUserSuperAdmin = cache(async function isCurrentUserSuperAdmin() {
   const adminSupabase = createSupabaseAdminClient();
+  const user = await getCurrentUser();
 
-  if (!supabase || !adminSupabase) {
+  if (!user || !adminSupabase) {
     return false;
   }
 
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return false;
-  }
-
-  const { data } = await adminSupabase
-    .from("admin_roles")
-    .select("role")
-    .eq("user_id", user.id)
-    .eq("role", "super_admin")
-    .limit(1)
-    .maybeSingle();
+  const { data } = await withTiming("db.query", "admin_roles.super_admin_lookup", async () =>
+    adminSupabase
+      .from("admin_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "super_admin")
+      .limit(1)
+      .maybeSingle()
+  );
 
   return Boolean(data);
-}
+});
 
-export async function getAdminCategories(): Promise<ResourceCategory[]> {
+export const getAdminCategories = cache(async function getAdminCategories(): Promise<ResourceCategory[]> {
   const adminSupabase = createSupabaseAdminClient();
 
   if (!adminSupabase) {
@@ -62,9 +79,9 @@ export async function getAdminCategories(): Promise<ResourceCategory[]> {
     id: category.id,
     name: category.name
   }));
-}
+});
 
-export async function getAdminResources(): Promise<Resource[]> {
+export const getAdminResources = cache(async function getAdminResources(): Promise<Resource[]> {
   const adminSupabase = createSupabaseAdminClient();
 
   if (!adminSupabase) {
@@ -74,35 +91,63 @@ export async function getAdminResources(): Promise<Resource[]> {
   const { data } = await adminSupabase
     .from("resources")
     .select("*")
+    .in("year_cycle", curriculumYearStorageValues("Volume 1"))
     .order("year_cycle", { ascending: true })
     .order("term", { ascending: true })
     .order("lesson_number", { ascending: true });
 
-  return (data ?? []).map((resource) => ({
-    id: resource.id,
-    title: resource.title,
-    description: resource.description,
-    lessonNumber: resource.lesson_number ?? 1,
-    scripture: resource.scripture ?? "",
-    yearCycle: resource.year_cycle ?? "Year A",
-    term: resource.term ?? "Term 1",
-    musicAvailable: Boolean(resource.music_file_path || resource.music_file_name),
-    worksheetAvailable: Boolean(resource.worksheet_file_path || resource.worksheet_file_name),
-    manualAvailable: Boolean(resource.manual_file_path || resource.manual_file_name),
-    musicFilePath: resource.music_file_path ?? "",
-    worksheetFilePath: resource.worksheet_file_path ?? "",
-    manualFilePath: resource.manual_file_path ?? "",
-    musicFileName: resource.music_file_name ?? "",
-    worksheetFileName: resource.worksheet_file_name ?? "",
-    manualFileName: resource.manual_file_name ?? "",
-    attachments: parseLessonResourceFiles(resource.file_url, resource),
-    publishDate: resource.publish_date,
-    expiryDate: resource.expiry_date,
-    status: resource.published ? "open" : "closed"
-  }));
-}
+  const resources: Resource[] = (data ?? []).map((resource) => {
+    const resourcePayload = parseLessonResourcePayload(resource.file_url, resource);
 
-export async function getAdminTermNotes(): Promise<CurriculumTermNote[]> {
+    return {
+      id: resource.id,
+      title: resource.title,
+      description: resource.description,
+      lessonNumber: resource.lesson_number ?? 1,
+      scripture: resource.scripture ?? "",
+      bigIdea: resourcePayload.bigIdea,
+      podcastTitle: resourcePayload.podcastTitle,
+      podcastLinks: resourcePayload.podcastLinks,
+      yearCycle: normalizeCurriculumYear(resource.year_cycle),
+      term: normalizeCurriculumSection(resource.term),
+      musicAvailable: Boolean(resource.music_file_path || resource.music_file_name),
+      worksheetAvailable: Boolean(resource.worksheet_file_path || resource.worksheet_file_name),
+      manualAvailable: Boolean(resource.manual_file_path || resource.manual_file_name),
+      musicFilePath: resource.music_file_path ?? "",
+      worksheetFilePath: resource.worksheet_file_path ?? "",
+      manualFilePath: resource.manual_file_path ?? "",
+      musicFileName: resource.music_file_name ?? "",
+      worksheetFileName: resource.worksheet_file_name ?? "",
+      manualFileName: resource.manual_file_name ?? "",
+      attachments: resourcePayload.files,
+      preschoolAttachments: resourcePayload.preschoolFiles,
+      publishDate: resource.publish_date,
+      expiryDate: resource.expiry_date,
+      status: resource.published ? "open" : "closed"
+    };
+  });
+
+  const sizeLookup = await getStoredResourceFileSizes(
+    resources.flatMap((resource) => [
+      ...(resource.attachments?.map((attachment) => attachment.filePath) ?? []),
+      ...(resource.preschoolAttachments?.map((attachment) => attachment.filePath) ?? [])
+    ])
+  );
+
+  return resources.map((resource) => ({
+    ...resource,
+    attachments: resource.attachments?.map((attachment) => ({
+      ...attachment,
+      sizeBytes: attachment.sizeBytes ?? sizeLookup.get(attachment.filePath)
+    })),
+    preschoolAttachments: resource.preschoolAttachments?.map((attachment) => ({
+      ...attachment,
+      sizeBytes: attachment.sizeBytes ?? sizeLookup.get(attachment.filePath)
+    }))
+  }));
+});
+
+export const getAdminTermNotes = cache(async function getAdminTermNotes(): Promise<CurriculumTermNote[]> {
   const adminSupabase = createSupabaseAdminClient();
 
   if (!adminSupabase) {
@@ -112,6 +157,7 @@ export async function getAdminTermNotes(): Promise<CurriculumTermNote[]> {
   const { data, error } = await adminSupabase
     .from("curriculum_term_notes")
     .select("year_cycle, term, content")
+    .in("year_cycle", curriculumYearStorageValues("Volume 1"))
     .order("year_cycle", { ascending: true })
     .order("term", { ascending: true });
 
@@ -119,14 +165,125 @@ export async function getAdminTermNotes(): Promise<CurriculumTermNote[]> {
     return [];
   }
 
-  return (data ?? []).map((note) => ({
-    yearCycle: note.year_cycle ?? "Year A",
-    term: note.term ?? "Term 1",
-    content: note.content ?? ""
-  }));
-}
+  const notesBySection = new Map<
+    string,
+    { note: CurriculumTermNote; priority: number }
+  >();
 
-export async function getSuperAdminEmails() {
+  (data ?? []).forEach((note) => {
+    const yearCycle = normalizeCurriculumYear(note.year_cycle);
+    const term = normalizeCurriculumSection(note.term);
+    const key = `${yearCycle}::${term}`;
+    const priority =
+      (isCurrentCurriculumYear(note.year_cycle) ? 2 : 0) +
+      (isCurrentCurriculumSection(note.term) ? 1 : 0);
+    const current = notesBySection.get(key);
+
+    if (!current || priority >= current.priority) {
+      notesBySection.set(key, {
+        priority,
+        note: {
+          yearCycle,
+          term,
+          content: note.content ?? ""
+        }
+      });
+    }
+  });
+
+  return Array.from(notesBySection.values()).map((entry) => entry.note);
+});
+
+export const getAdminProducts = cache(async function getAdminProducts(): Promise<Plan[]> {
+  const adminSupabase = createSupabaseAdminClient();
+
+  if (!adminSupabase) {
+    return defaultPlans;
+  }
+
+  const { data, error } = await adminSupabase
+    .from("products")
+    .select("plan_tier, title, product_type, summary_html, prices, default_currency, stripe_price_ids, active")
+    .order("display_order", { ascending: true });
+
+  if (error || !data?.length) {
+    return defaultPlans;
+  }
+
+  const productMap = new Map(
+    data
+      .map((row) => normalizeProductRow(row as Record<string, unknown>))
+      .filter((plan): plan is Plan => Boolean(plan))
+      .map((plan) => [plan.id, plan])
+  );
+
+  return defaultPlans.map((plan) => productMap.get(plan.id) ?? plan);
+});
+
+export const getAdminOverviewMetrics = cache(async function getAdminOverviewMetrics(
+  yearCycle: string,
+  term: string
+): Promise<AdminOverviewMetrics> {
+  const adminSupabase = createSupabaseAdminClient();
+
+  if (!adminSupabase) {
+    return {
+      resources: 0,
+      selectedLessons: 0,
+      products: defaultPlans.length,
+      accountHolders: 0,
+      subAccounts: 0,
+      orders: 0,
+      paidOrders: 0
+    };
+  }
+
+  const [
+    { count: resources },
+    { count: selectedLessons },
+    { count: products },
+    { count: accountHolders },
+    { count: subAccounts },
+    { count: orders },
+    { count: paidOrders }
+  ] = await Promise.all([
+    adminSupabase
+      .from("resources")
+      .select("id", { count: "exact", head: true })
+      .in("year_cycle", curriculumYearStorageValues("Volume 1")),
+    adminSupabase
+      .from("resources")
+      .select("id", { count: "exact", head: true })
+      .in("year_cycle", curriculumYearStorageValues(yearCycle))
+      .in("term", curriculumSectionStorageValues(term)),
+    adminSupabase.from("products").select("id", { count: "exact", head: true }),
+    adminSupabase
+      .from("organization_members")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "owner"),
+    adminSupabase
+      .from("organization_members")
+      .select("id", { count: "exact", head: true })
+      .neq("role", "owner"),
+    adminSupabase.from("purchase_orders").select("id", { count: "exact", head: true }),
+    adminSupabase
+      .from("purchase_orders")
+      .select("id", { count: "exact", head: true })
+      .eq("payment_status", "paid")
+  ]);
+
+  return {
+    resources: resources ?? 0,
+    selectedLessons: selectedLessons ?? 0,
+    products: products ?? defaultPlans.length,
+    accountHolders: accountHolders ?? 0,
+    subAccounts: subAccounts ?? 0,
+    orders: orders ?? 0,
+    paidOrders: paidOrders ?? 0
+  };
+});
+
+export const getSuperAdminEmails = cache(async function getSuperAdminEmails() {
   const adminSupabase = createSupabaseAdminClient();
 
   if (!adminSupabase) {
@@ -144,13 +301,13 @@ export async function getSuperAdminEmails() {
     displayName:
       typeof entry.display_name === "string" && entry.display_name.trim()
         ? entry.display_name.trim()
-        : String(entry.email ?? "").split("@")[0] || "Super admin",
+        : String(entry.email ?? "").split("@")[0] || "Admin",
     role: "super_admin",
     createdAt: String(entry.created_at ?? "")
   })) satisfies SuperAdminSummary[];
-}
+});
 
-export async function getAccountHolderSummaries(): Promise<AccountHolderSummary[]> {
+export const getAccountHolderSummaries = cache(async function getAccountHolderSummaries(): Promise<AccountHolderSummary[]> {
   const adminSupabase = createSupabaseAdminClient();
 
   if (!adminSupabase) {
@@ -224,9 +381,9 @@ export async function getAccountHolderSummaries(): Promise<AccountHolderSummary[
       (member) => member.role !== "owner"
     )
   }));
-}
+});
 
-export async function getPurchaseOrders(): Promise<PurchaseOrderSummary[]> {
+export const getPurchaseOrders = cache(async function getPurchaseOrders(): Promise<PurchaseOrderSummary[]> {
   const adminSupabase = createSupabaseAdminClient();
 
   if (!adminSupabase) {
@@ -266,4 +423,4 @@ export async function getPurchaseOrders(): Promise<PurchaseOrderSummary[]> {
     billingPhone: order.billing_phone ?? "",
     createdAt: order.created_at
   }));
-}
+});

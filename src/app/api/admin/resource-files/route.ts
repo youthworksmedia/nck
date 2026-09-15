@@ -7,7 +7,10 @@ import {
   removeStoredResourceFile,
   saveUploadedResourceFile
 } from "@/lib/resource-assets";
-import { parseLessonResourceFiles, serializeLessonResourceFiles } from "@/lib/lesson-resource-files";
+import {
+  parseLessonResourcePayload,
+  serializeLessonResourceFiles
+} from "@/lib/lesson-resource-files";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -112,17 +115,25 @@ export async function DELETE(request: Request) {
 
   await Promise.all(
     (resources ?? []).map(async (resource) => {
-      const resourceFiles = parseLessonResourceFiles(resource.file_url, resource);
-      const retainedFiles = resourceFiles.filter((entry) => entry.filePath !== payload.data.path);
+      const resourcePayload = parseLessonResourcePayload(resource.file_url, resource);
+      const retainedFiles = resourcePayload.files.filter((entry) => entry.filePath !== payload.data.path);
+      const retainedPreschoolFiles = resourcePayload.preschoolFiles.filter((entry) => entry.filePath !== payload.data.path);
 
-      if (retainedFiles.length === resourceFiles.length) {
+      if (
+        retainedFiles.length === resourcePayload.files.length &&
+        retainedPreschoolFiles.length === resourcePayload.preschoolFiles.length
+      ) {
         return;
       }
 
       await adminSupabase
         .from("resources")
         .update({
-          file_url: serializeLessonResourceFiles(retainedFiles)
+          file_url: serializeLessonResourceFiles({
+            ...resourcePayload,
+            files: retainedFiles,
+            preschoolFiles: retainedPreschoolFiles
+          })
         })
         .eq("id", resource.id);
     })

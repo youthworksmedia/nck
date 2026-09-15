@@ -17,12 +17,19 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-    <>
+    <div className="promo-login-layout">
       <LoginPageTitle />
       <SiteHeader />
-      <main className="site-shell section">
+      <main className="promo-login-shell">
+        <section className="promo-login-copy">
+          <p className="promo-eyebrow">Welcome back</p>
+          <h1>Login to New Creation Kids</h1>
+          <p>
+            Access your curriculum, downloads, leader resources, and account tools in one calm place.
+          </p>
+        </section>
         <LoginForm />
       </main>
-    </>
+    </div>
   );
 }

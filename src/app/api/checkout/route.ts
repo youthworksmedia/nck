@@ -8,12 +8,14 @@ import {
   getFakeExpiryDate,
   isAcceptedFakeCard
 } from "@/lib/checkout";
-import { sendWelcomeEmail } from "@/lib/email-delivery";
+import { sendRenewalConfirmationEmail, sendWelcomeEmail } from "@/lib/email-delivery";
+import { getGeneralEmailSettings } from "@/lib/email-settings";
 import { isStrongPassword, passwordRequirementText } from "@/lib/password";
-import { getPlanByTier } from "@/lib/plans";
+import { getPlanByTierFromProducts } from "@/lib/plans";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getRequestSupabaseAuth } from "@/lib/supabase/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { publicEnv } from "@/lib/public-env";
+import { startTimer, withTiming } from "@/lib/timing";
 import { addYears, formatISO } from "@/lib/time";
 
 const checkoutSchema = z.object({
@@ -35,14 +37,12 @@ const checkoutSchema = z.object({
   cvc: z.string().trim().min(3, "Add the security code.")
 });
 
-async function findOwnerMembership(userId: string) {
-  const supabase = await createSupabaseServerClient();
-
-  if (!supabase) {
-    return null;
-  }
-
-  const { data } = await supabase
+async function findOwnerMembership(
+  adminSupabase: NonNullable<ReturnType<typeof createSupabaseAdminClient>>,
+  userId: string,
+  email?: string | null
+) {
+  const { data: byUserId } = await adminSupabase
     .from("organization_members")
     .select("organization_id, role")
     .eq("user_id", userId)
@@ -50,7 +50,23 @@ async function findOwnerMembership(userId: string) {
     .limit(1)
     .maybeSingle();
 
-  return data;
+  if (byUserId) {
+    return byUserId;
+  }
+
+  if (!email) {
+    return null;
+  }
+
+  const { data: byEmail } = await adminSupabase
+    .from("organization_members")
+    .select("organization_id, role")
+    .eq("invitation_email", email.toLowerCase())
+    .eq("role", "owner")
+    .limit(1)
+    .maybeSingle();
+
+  return byEmail;
 }
 
 function getRenewalDates(existingPeriodEnd?: string | null) {
@@ -118,6 +134,40 @@ async function updateOrganizationCheckoutFields(
   }
 }
 
+async function updateOrganizationBillingFields(
+  adminSupabase: NonNullable<ReturnType<typeof createSupabaseAdminClient>>,
+  organizationId: string,
+  input: z.infer<typeof checkoutSchema>
+) {
+  let fields: Record<string, string> = {
+    billing_address_line1: input.addressLine1,
+    billing_suburb: input.suburb,
+    billing_state: input.state,
+    billing_postcode: input.postcode,
+    billing_country: input.country
+  };
+
+  while (true) {
+    const { error } = await adminSupabase
+      .from("organizations")
+      .update(fields)
+      .eq("id", organizationId);
+
+    if (!error) {
+      return;
+    }
+
+    const missingColumn = error.message.match(/Could not find the '([^']+)' column/i)?.[1];
+
+    if (missingColumn && missingColumn in fields) {
+      delete fields[missingColumn];
+      continue;
+    }
+
+    throw new Error(error.message);
+  }
+}
+
 async function updateOwnerMembershipName(
   adminSupabase: NonNullable<ReturnType<typeof createSupabaseAdminClient>>,
   organizationId: string,
@@ -138,68 +188,162 @@ async function updateOwnerMembershipName(
   throw new Error(error.message);
 }
 
+async function getRenewalAccountDetails(
+  adminSupabase: NonNullable<ReturnType<typeof createSupabaseAdminClient>>,
+  organizationId: string,
+  ownerUserId: string,
+  fallback: z.infer<typeof checkoutSchema>,
+  fallbackEmail: string
+) {
+  const [{ data: organization }, { data: ownerByUserId }, { data: latestOrder }] =
+    await Promise.all([
+      adminSupabase
+        .from("organizations")
+        .select("name, account_holder_name, church_name, billing_phone")
+        .eq("id", organizationId)
+        .limit(1)
+        .maybeSingle(),
+      adminSupabase
+        .from("organization_members")
+        .select("invitation_email, display_name")
+        .eq("organization_id", organizationId)
+        .eq("user_id", ownerUserId)
+        .eq("role", "owner")
+        .limit(1)
+        .maybeSingle(),
+      adminSupabase
+        .from("purchase_orders")
+        .select("account_holder_name, account_holder_email, church_name, billing_phone")
+        .eq("organization_id", organizationId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    ]);
+  const ownerMembership =
+    ownerByUserId ??
+    (
+      await adminSupabase
+        .from("organization_members")
+        .select("invitation_email, display_name")
+        .eq("organization_id", organizationId)
+        .eq("invitation_email", fallbackEmail.toLowerCase())
+        .eq("role", "owner")
+        .limit(1)
+        .maybeSingle()
+    ).data;
+
+  return {
+    accountHolderName:
+      ownerMembership?.display_name ??
+      organization?.account_holder_name ??
+      latestOrder?.account_holder_name ??
+      fallback.accountHolderName,
+    churchName:
+      organization?.church_name ??
+      organization?.name ??
+      latestOrder?.church_name ??
+      fallback.churchName,
+    email:
+      ownerMembership?.invitation_email ??
+      latestOrder?.account_holder_email ??
+      fallbackEmail,
+    phone:
+      organization?.billing_phone ??
+      latestOrder?.billing_phone ??
+      fallback.phone
+  };
+}
+
+async function upsertSubscription(
+  adminSupabase: NonNullable<ReturnType<typeof createSupabaseAdminClient>>,
+  payload: Record<string, unknown>
+) {
+  let fields = { ...payload };
+
+  while (true) {
+    const { error } = await adminSupabase.from("subscriptions").upsert(fields, {
+      onConflict: "organization_id"
+    });
+
+    if (!error) {
+      return;
+    }
+
+    const missingColumn = error.message.match(/Could not find the '([^']+)' column/i)?.[1];
+
+    if (missingColumn && missingColumn in fields) {
+      delete fields[missingColumn];
+      continue;
+    }
+
+    throw new Error(error.message);
+  }
+}
+
 export async function POST(request: Request) {
-  const adminSupabase = createSupabaseAdminClient();
-  const supabase = await createSupabaseServerClient();
-
-  if (!adminSupabase || !supabase) {
-    return NextResponse.json(
-      {
-        message: "Supabase environment variables are required for checkout."
-      },
-      { status: 500 }
-    );
-  }
-
-  const parsed = checkoutSchema.safeParse(await request.json());
-
-  if (!parsed.success) {
-    return NextResponse.json(
-      {
-        message: parsed.error.issues[0]?.message ?? "Checkout details are incomplete."
-      },
-      { status: 400 }
-    );
-  }
-
-  const input = parsed.data;
-  const plan = getPlanByTier(input.tier);
-
-  if (!plan) {
-    return NextResponse.json({ message: "Invalid plan selected." }, { status: 400 });
-  }
-
-  if (!isAcceptedFakeCard(input.cardNumber)) {
-    return NextResponse.json(
-      {
-        message:
-          "Use one of the fake test cards on the page. Live card charging is not enabled yet."
-      },
-      { status: 400 }
-    );
-  }
-
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-
-  const isSignedInOwner = Boolean(user && (await findOwnerMembership(user.id))?.organization_id);
-  const normalizedEmail = input.email.toLowerCase();
-  const orderNumber = createOrderNumber(plan.id);
-  const cardBrand = detectFakeCardBrand(input.cardNumber);
-  const cardLast4 = getCardLast4(input.cardNumber);
-
-  let createdUserId: string | null = null;
-  let createdOrganizationId: string | null = null;
-  let orderId: string | null = null;
+  const timer = startTimer("route.handler", "POST /api/checkout");
 
   try {
-    let ownerUserId = user?.id ?? null;
-    let organizationId: string | null = null;
-    let renewalDates = getFakeExpiryDate();
+    const adminSupabase = createSupabaseAdminClient();
+    const supabase = await createSupabaseServerClient();
+
+    if (!adminSupabase || !supabase) {
+      return NextResponse.json(
+        {
+          message: "Supabase environment variables are required for checkout."
+        },
+        { status: 500 }
+      );
+    }
+
+    const parsed = checkoutSchema.safeParse(await request.json());
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          message: parsed.error.issues[0]?.message ?? "Checkout details are incomplete."
+        },
+        { status: 400 }
+      );
+    }
+
+    const input = parsed.data;
+    const plan = await getPlanByTierFromProducts(input.tier);
+
+    if (!plan) {
+      return NextResponse.json({ message: "Invalid plan selected." }, { status: 400 });
+    }
+
+    if (!isAcceptedFakeCard(input.cardNumber)) {
+      return NextResponse.json(
+        {
+          message:
+            "Use one of the fake test cards on the page. Live card charging is not enabled yet."
+        },
+        { status: 400 }
+      );
+    }
+
+    const { user } = await getRequestSupabaseAuth();
+    const ownerMembership = user
+      ? await findOwnerMembership(adminSupabase, user.id, user.email)
+      : null;
+    const isSignedInOwner = Boolean(ownerMembership?.organization_id);
+    const normalizedEmail = input.email.toLowerCase();
+    const orderNumber = createOrderNumber(plan.id);
+    const cardBrand = detectFakeCardBrand(input.cardNumber);
+    const cardLast4 = getCardLast4(input.cardNumber);
+
+    let createdUserId: string | null = null;
+    let createdOrganizationId: string | null = null;
+    let orderId: string | null = null;
+
+    try {
+      let ownerUserId = user?.id ?? null;
+      let organizationId: string | null = null;
+      let renewalDates = getFakeExpiryDate();
 
     if (isSignedInOwner && ownerUserId) {
-      const ownerMembership = await findOwnerMembership(ownerUserId);
       organizationId = ownerMembership?.organization_id ?? null;
 
       if (!organizationId) {
@@ -209,12 +353,14 @@ export async function POST(request: Request) {
         );
       }
 
-      const { data: existingSubscription } = await adminSupabase
-        .from("subscriptions")
-        .select("current_period_end")
-        .eq("organization_id", organizationId)
-        .limit(1)
-        .maybeSingle();
+      const { data: existingSubscription } = await withTiming("db.query", "subscriptions.current_period_end", async () =>
+        adminSupabase
+          .from("subscriptions")
+          .select("current_period_end")
+          .eq("organization_id", organizationId)
+          .limit(1)
+          .maybeSingle()
+      );
 
       renewalDates = getRenewalDates(existingSubscription?.current_period_end);
     } else {
@@ -225,7 +371,11 @@ export async function POST(request: Request) {
         );
       }
 
-      const { data: existingUsers, error: listUsersError } = await adminSupabase.auth.admin.listUsers();
+      const { data: existingUsers, error: listUsersError } = await withTiming(
+        "supabase.auth",
+        "admin.listUsers.checkout",
+        async () => adminSupabase.auth.admin.listUsers()
+      );
 
       if (listUsersError) {
         throw new Error(listUsersError.message);
@@ -309,8 +459,28 @@ export async function POST(request: Request) {
       );
     }
 
-    await updateOrganizationCheckoutFields(adminSupabase, organizationId, ownerUserId, input);
-    await updateOwnerMembershipName(adminSupabase, organizationId, ownerUserId, input.accountHolderName);
+    const accountDetails = isSignedInOwner
+      ? await getRenewalAccountDetails(
+          adminSupabase,
+          organizationId,
+          ownerUserId,
+          input,
+          user?.email ?? normalizedEmail
+        )
+      : {
+          accountHolderName: input.accountHolderName,
+          churchName: input.churchName,
+          email: normalizedEmail,
+          phone: input.phone
+        };
+    const accountEmail = accountDetails.email.toLowerCase();
+
+    if (isSignedInOwner) {
+      await updateOrganizationBillingFields(adminSupabase, organizationId, input);
+    } else {
+      await updateOrganizationCheckoutFields(adminSupabase, organizationId, ownerUserId, input);
+      await updateOwnerMembershipName(adminSupabase, organizationId, ownerUserId, input.accountHolderName);
+    }
 
     const { data: order, error: orderError } = await adminSupabase
       .from("purchase_orders")
@@ -318,12 +488,12 @@ export async function POST(request: Request) {
         organization_id: organizationId,
         owner_user_id: ownerUserId,
         order_number: orderNumber,
-        account_holder_name: input.accountHolderName,
-        account_holder_email: normalizedEmail,
-        church_name: input.churchName,
+        account_holder_name: accountDetails.accountHolderName,
+        account_holder_email: accountEmail,
+        church_name: accountDetails.churchName,
         plan_tier: plan.id,
         amount: plan.annualPrice,
-        currency: "usd",
+        currency: plan.currency.toLowerCase(),
         payment_status: "paid",
         payment_provider: "fake",
         card_brand: cardBrand,
@@ -333,7 +503,7 @@ export async function POST(request: Request) {
         billing_state: input.state,
         billing_postcode: input.postcode,
         billing_country: input.country,
-        billing_phone: input.phone
+        billing_phone: accountDetails.phone
       })
       .select("id")
       .single();
@@ -347,35 +517,39 @@ export async function POST(request: Request) {
 
     orderId = order.id;
 
-    const { error: subscriptionError } = await adminSupabase.from("subscriptions").upsert(
-      {
-        organization_id: organizationId,
-        tier: plan.id,
-        status: "active",
-        started_at: renewalDates.startedAt,
-        current_period_end: renewalDates.renewalDate,
-        cancel_at_period_end: false,
-        updated_at: new Date().toISOString()
-      },
-      {
-        onConflict: "organization_id"
-      }
-    );
-
-    if (subscriptionError) {
-      throw new Error(subscriptionError.message);
-    }
-
-    const welcomeEmail = await sendWelcomeEmail({
-      to: normalizedEmail,
-      accountHolderName: input.accountHolderName,
-      churchName: input.churchName,
-      planName: plan.name
+    await upsertSubscription(adminSupabase, {
+      organization_id: organizationId,
+      tier: plan.id,
+      currency: plan.currency.toLowerCase(),
+      stripe_price_id: plan.stripePriceIds[plan.currency] ?? null,
+      status: "active",
+      started_at: renewalDates.startedAt,
+      current_period_end: renewalDates.renewalDate,
+      cancel_at_period_end: false,
+      updated_at: new Date().toISOString()
     });
+
+    const [generalSettings, welcomeEmail] = await Promise.all([
+      getGeneralEmailSettings(),
+      isSignedInOwner
+        ? sendRenewalConfirmationEmail({
+            to: accountEmail,
+            accountHolderName: accountDetails.accountHolderName,
+            churchName: accountDetails.churchName,
+            planName: plan.name,
+            renewalDate: renewalDates.renewalDate
+          })
+        : sendWelcomeEmail({
+            to: accountEmail,
+            accountHolderName: accountDetails.accountHolderName,
+            churchName: accountDetails.churchName,
+            planName: plan.name
+          })
+    ]);
 
     return NextResponse.json({
       message: `Purchase successful. Order ${orderNumber} is active.`,
-      redirectTo: `${publicEnv.siteUrl}/account?checkout=success&order=${encodeURIComponent(orderNumber)}`,
+      redirectTo: `${generalSettings.siteUrl}/account?checkout=success&order=${encodeURIComponent(orderNumber)}`,
       requiresSignIn: !isSignedInOwner,
       welcomeEmail
     });
@@ -392,14 +566,17 @@ export async function POST(request: Request) {
       await adminSupabase.auth.admin.deleteUser(createdUserId);
     }
 
-    return NextResponse.json(
-      {
-        message:
-          error instanceof Error
-            ? error.message
-            : "Checkout could not be completed. Please try again."
-      },
-      { status: 500 }
-    );
+      return NextResponse.json(
+        {
+          message:
+            error instanceof Error
+              ? error.message
+              : "Checkout could not be completed. Please try again."
+        },
+        { status: 500 }
+      );
+    }
+  } finally {
+    console.timeEnd(timer);
   }
 }

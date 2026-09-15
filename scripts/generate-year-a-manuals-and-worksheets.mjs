@@ -1051,7 +1051,7 @@ function buildAttachSql(records) {
 
   for (const record of records) {
     lines.push(
-      `update public.resources`,
+      `update nck.resources`,
       `set manual_file_path = '${record.manualPath}',`,
       `    manual_file_name = '${record.manualName}',`,
       `    worksheet_file_path = '${record.worksheetPath}',`,

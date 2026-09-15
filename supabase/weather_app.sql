@@ -1,24 +1,26 @@
 create extension if not exists "pgcrypto";
 
-create table if not exists public.users (
+create schema if not exists nck;
+
+create table if not exists nck.users (
   id uuid primary key references auth.users(id) on delete cascade,
   email text,
   created_at timestamptz not null default timezone('utc', now())
 );
 
-create table if not exists public.locations (
+create table if not exists nck.locations (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   latitude numeric(8, 4) not null,
   longitude numeric(8, 4) not null,
   favorited boolean not null default false,
-  user_id uuid not null references public.users(id) on delete cascade,
+  user_id uuid not null references nck.users(id) on delete cascade,
   created_at timestamptz not null default timezone('utc', now())
 );
 
-create table if not exists public.forecasts (
+create table if not exists nck.forecasts (
   id uuid primary key default gen_random_uuid(),
-  location_id uuid not null references public.locations(id) on delete cascade,
+  location_id uuid not null references nck.locations(id) on delete cascade,
   provider text not null check (provider in ('BOM', 'YR')),
   forecast_for_date date not null,
   predicted_temp numeric(5, 2),
@@ -28,9 +30,9 @@ create table if not exists public.forecasts (
   created_at timestamptz not null default timezone('utc', now())
 );
 
-create table if not exists public.observations (
+create table if not exists nck.observations (
   id uuid primary key default gen_random_uuid(),
-  location_id uuid not null references public.locations(id) on delete cascade,
+  location_id uuid not null references nck.locations(id) on delete cascade,
   observed_date date not null,
   actual_temp numeric(5, 2),
   actual_rain numeric(8, 2),
@@ -39,9 +41,9 @@ create table if not exists public.observations (
   created_at timestamptz not null default timezone('utc', now())
 );
 
-create table if not exists public.accuracy_scores (
+create table if not exists nck.accuracy_scores (
   id uuid primary key default gen_random_uuid(),
-  location_id uuid not null references public.locations(id) on delete cascade,
+  location_id uuid not null references nck.locations(id) on delete cascade,
   provider text not null check (provider in ('BOM', 'YR')),
   temp_accuracy numeric(6, 2) not null default 0,
   rain_accuracy numeric(6, 2) not null default 0,
@@ -51,87 +53,90 @@ create table if not exists public.accuracy_scores (
   unique (location_id, provider)
 );
 
-create index if not exists locations_user_id_idx on public.locations (user_id, favorited);
-create unique index if not exists locations_user_coordinates_unique on public.locations (user_id, latitude, longitude);
-create index if not exists forecasts_location_provider_idx on public.forecasts (location_id, provider, forecast_for_date desc);
-create index if not exists observations_location_date_idx on public.observations (location_id, observed_date desc);
+create index if not exists locations_user_id_idx on nck.locations (user_id, favorited);
+create unique index if not exists locations_user_coordinates_unique on nck.locations (user_id, latitude, longitude);
+create index if not exists forecasts_location_provider_idx on nck.forecasts (location_id, provider, forecast_for_date desc);
+create index if not exists observations_location_date_idx on nck.observations (location_id, observed_date desc);
 
-alter table public.users enable row level security;
-alter table public.locations enable row level security;
-alter table public.forecasts enable row level security;
-alter table public.observations enable row level security;
-alter table public.accuracy_scores enable row level security;
+alter table nck.users enable row level security;
+alter table nck.locations enable row level security;
+alter table nck.forecasts enable row level security;
+alter table nck.observations enable row level security;
+alter table nck.accuracy_scores enable row level security;
 
-drop policy if exists "users can manage own weather profile" on public.users;
+drop policy if exists "users can manage own weather profile" on nck.users;
 create policy "users can manage own weather profile"
-on public.users
+on nck.users
 for all
 using (id = auth.uid())
 with check (id = auth.uid());
 
-drop policy if exists "users can manage own locations" on public.locations;
+drop policy if exists "users can manage own locations" on nck.locations;
 create policy "users can manage own locations"
-on public.locations
+on nck.locations
 for all
 using (user_id = auth.uid())
 with check (user_id = auth.uid());
 
-drop policy if exists "users can read own forecasts" on public.forecasts;
+drop policy if exists "users can read own forecasts" on nck.forecasts;
 create policy "users can read own forecasts"
-on public.forecasts
+on nck.forecasts
 for select
 using (
   exists (
     select 1
-    from public.locations l
+    from nck.locations l
     where l.id = forecasts.location_id
       and l.user_id = auth.uid()
   )
 );
 
-drop policy if exists "service role manages forecasts" on public.forecasts;
+drop policy if exists "service role manages forecasts" on nck.forecasts;
 create policy "service role manages forecasts"
-on public.forecasts
+on nck.forecasts
 for all
-using (auth.role() = 'service_role')
-with check (auth.role() = 'service_role');
+to service_role
+using (true)
+with check (true);
 
-drop policy if exists "users can read own observations" on public.observations;
+drop policy if exists "users can read own observations" on nck.observations;
 create policy "users can read own observations"
-on public.observations
+on nck.observations
 for select
 using (
   exists (
     select 1
-    from public.locations l
+    from nck.locations l
     where l.id = observations.location_id
       and l.user_id = auth.uid()
   )
 );
 
-drop policy if exists "service role manages observations" on public.observations;
+drop policy if exists "service role manages observations" on nck.observations;
 create policy "service role manages observations"
-on public.observations
+on nck.observations
 for all
-using (auth.role() = 'service_role')
-with check (auth.role() = 'service_role');
+to service_role
+using (true)
+with check (true);
 
-drop policy if exists "users can read own accuracy scores" on public.accuracy_scores;
+drop policy if exists "users can read own accuracy scores" on nck.accuracy_scores;
 create policy "users can read own accuracy scores"
-on public.accuracy_scores
+on nck.accuracy_scores
 for select
 using (
   exists (
     select 1
-    from public.locations l
+    from nck.locations l
     where l.id = accuracy_scores.location_id
       and l.user_id = auth.uid()
   )
 );
 
-drop policy if exists "service role manages accuracy scores" on public.accuracy_scores;
+drop policy if exists "service role manages accuracy scores" on nck.accuracy_scores;
 create policy "service role manages accuracy scores"
-on public.accuracy_scores
+on nck.accuracy_scores
 for all
-using (auth.role() = 'service_role')
-with check (auth.role() = 'service_role');
+to service_role
+using (true)
+with check (true);

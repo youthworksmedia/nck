@@ -1,14 +1,16 @@
 "use client";
 
 import { Pencil, Save, X } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import { WysiwygEditor } from "@/components/wysiwyg-editor";
+import { ModalPortal } from "@/components/modal-portal";
+import { WysiwygEditor, type WysiwygEditorHandle } from "@/components/wysiwyg-editor";
+import type { CurriculumSection, CurriculumYear } from "@/lib/curriculum";
 
 type Props = {
-  yearCycle: "Year A" | "Year B" | "Year C";
-  term: "Term 1" | "Term 2" | "Term 3" | "Term 4";
+  yearCycle: CurriculumYear;
+  term: CurriculumSection;
   initialContent: string;
 };
 
@@ -19,6 +21,7 @@ export function AdminTermNoteEditor({ yearCycle, term, initialContent }: Props) 
   const [message, setMessage] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const editorRef = useRef<WysiwygEditorHandle | null>(null);
 
   useEffect(() => {
     setContent(initialContent);
@@ -54,6 +57,7 @@ export function AdminTermNoteEditor({ yearCycle, term, initialContent }: Props) 
       </div>
 
       {isOpen ? (
+        <ModalPortal>
         <div className="modal-backdrop" role="presentation" onClick={() => setIsOpen(false)}>
           <div
             className="modal-card admin-term-note-modal-card"
@@ -80,6 +84,7 @@ export function AdminTermNoteEditor({ yearCycle, term, initialContent }: Props) 
             </div>
 
             <WysiwygEditor
+              ref={editorRef}
               label="Term text"
               value={draft}
               onChange={setDraft}
@@ -99,6 +104,8 @@ export function AdminTermNoteEditor({ yearCycle, term, initialContent }: Props) 
                 disabled={isPending}
                 onClick={() => {
                   setMessage(null);
+                  const latestDraft = editorRef.current?.getHtml() ?? draft;
+                  setDraft(latestDraft);
 
                   startTransition(async () => {
                     const response = await fetch("/api/admin/term-notes", {
@@ -109,7 +116,7 @@ export function AdminTermNoteEditor({ yearCycle, term, initialContent }: Props) 
                       body: JSON.stringify({
                         yearCycle,
                         term,
-                        content: draft
+                        content: latestDraft
                       })
                     });
 
@@ -117,7 +124,7 @@ export function AdminTermNoteEditor({ yearCycle, term, initialContent }: Props) 
                     setMessage(payload.message ?? null);
 
                     if (response.ok) {
-                      setContent(draft);
+                      setContent(latestDraft);
                       setIsOpen(false);
                       router.refresh();
                     }
@@ -131,6 +138,7 @@ export function AdminTermNoteEditor({ yearCycle, term, initialContent }: Props) 
             {message ? <p className="form-status">{message}</p> : null}
           </div>
         </div>
+        </ModalPortal>
       ) : null}
     </>
   );

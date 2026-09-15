@@ -3,8 +3,12 @@ import { NextResponse } from "next/server";
 import { ensureDemoOwnerBootstrap } from "@/lib/bootstrap";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { startTimer, withTiming } from "@/lib/timing";
 
 export async function GET(request: Request) {
+  const timer = startTimer("route.handler", "GET /auth/callback");
+
+  try {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const next = requestUrl.searchParams.get("next") || "/account";
@@ -18,7 +22,7 @@ export async function GET(request: Request) {
   if (supabase) {
     const {
       data: { user }
-    } = await supabase.auth.getUser();
+    } = await withTiming("supabase.auth", "auth_callback.getUser", async () => supabase.auth.getUser());
 
     if (user?.email) {
       await ensureDemoOwnerBootstrap(user);
@@ -38,4 +42,7 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.redirect(new URL(next, requestUrl.origin));
+  } finally {
+    console.timeEnd(timer);
+  }
 }

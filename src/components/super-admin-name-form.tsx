@@ -4,6 +4,11 @@ import { Pencil, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { ModalPortal } from "@/components/modal-portal";
+
+import { PasswordInput } from "@/components/password-input";
+import { passwordRequirementText } from "@/lib/password";
+
 type SuperAdminNameFormProps = {
   userId: string;
   email: string;
@@ -17,6 +22,7 @@ export function SuperAdminNameForm({
 }: SuperAdminNameFormProps) {
   const router = useRouter();
   const [name, setName] = useState(initialName);
+  const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -31,6 +37,7 @@ export function SuperAdminNameForm({
         onClick={() => {
           setMessage(null);
           setName(initialName);
+          setPassword("");
           setIsOpen(true);
         }}
       >
@@ -38,6 +45,7 @@ export function SuperAdminNameForm({
       </button>
 
       {isOpen ? (
+        <ModalPortal>
         <div className="modal-backdrop" role="presentation" onClick={() => setIsOpen(false)}>
           <div
             className="modal-card"
@@ -48,7 +56,7 @@ export function SuperAdminNameForm({
           >
             <div className="modal-head">
               <div>
-                <h3 id={`admin-name-modal-${userId}`}>Edit super admin name</h3>
+                <h3 id={`admin-name-modal-${userId}`}>Edit Admin account</h3>
                 <p>{email}</p>
               </div>
               <button
@@ -73,7 +81,7 @@ export function SuperAdminNameForm({
                     headers: {
                       "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({ name })
+                    body: JSON.stringify({ name, password: password || undefined })
                   });
 
                   const payload = await response.json();
@@ -94,6 +102,15 @@ export function SuperAdminNameForm({
                 minLength={2}
                 required
               />
+              <PasswordInput
+                value={password}
+                onChange={setPassword}
+                placeholder="New password (optional)"
+                minLength={8}
+              />
+              <p className="form-status form-status-small">
+                Leave password blank to keep the current password. {passwordRequirementText}
+              </p>
               <div className="button-row">
                 <button
                   type="button"
@@ -110,6 +127,7 @@ export function SuperAdminNameForm({
             </form>
           </div>
         </div>
+        </ModalPortal>
       ) : null}
     </>
   );

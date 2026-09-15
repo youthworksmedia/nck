@@ -1,5 +1,7 @@
 begin;
 
+create schema if not exists nck;
+
 with lessons (
   title,
   description,
@@ -42,7 +44,7 @@ with lessons (
     ('Jesus Speaks About His Mission', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet.', 13, 'John 12:20-36', 'Curriculum', 'Year B', 'Term 4', '', ''),
     ('Believe in the Light', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis voluptatibus maiores.', 14, 'John 12:37-50', 'Curriculum', 'Year B', 'Term 4', '', '')
 )
-insert into public.resources (
+insert into nck.resources (
   title,
   description,
   lesson_number,
@@ -66,7 +68,7 @@ select
 from lessons
 where not exists (
   select 1
-  from public.resources existing
+  from nck.resources existing
   where existing.title = lessons.title
     and existing.year_cycle = lessons.year_cycle
     and existing.term = lessons.term

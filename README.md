@@ -1,6 +1,6 @@
 # God is Good Kids
 
-Next.js 15 + Supabase starter for a modern annual content membership product:
+Next.js 15 + Supabase app for a modern annual content membership product:
 
 - Landing page with pricing, samples, and direct checkout entry points
 - Annual subscription with three price tiers and identical functionality
@@ -11,7 +11,7 @@ Next.js 15 + Supabase starter for a modern annual content membership product:
 ## Stack
 
 - Next.js App Router
-- Supabase Auth + Postgres + RLS
+- Supabase Auth + Postgres + RLS, with NCK application objects isolated in the `nck` schema
 - Stripe Checkout for subscription billing
 - Capacitor Android shell for the Mollersphere weather app
 
@@ -22,7 +22,7 @@ Next.js 15 + Supabase starter for a modern annual content membership product:
 3. Add a service role key if you plan to run admin-side sync tasks.
 4. Add `WEATHER_CONTACT_EMAIL` for YR.no requests and `WEATHER_CRON_SECRET` for scheduled logging.
 5. Add Stripe secret key plus the three annual price IDs.
-6. Run the SQL in [supabase/schema.sql](/Users/robert/Documents/Playground 2/mollersphere/supabase/schema.sql) and [supabase/weather_app.sql](/Users/robert/Documents/Playground 2/mollersphere/supabase/weather_app.sql).
+6. Run the Supabase migrations. The NCK application expects the custom `nck` schema to be exposed through the Supabase Data API.
 7. Install dependencies with `npm install`.
 8. Start the app with `npm run dev`.
 
@@ -53,11 +53,12 @@ Notes:
 
 ## Data model
 
-- `organizations`: one customer account workspace
-- `organization_members`: owner and invited team members
-- `subscriptions`: one annual Stripe-backed membership per organization
-- `resources`: downloadable member-only assets
-- `resource_downloads`: optional tracking for downloads
+- `nck.organizations`: one customer account workspace
+- `nck.organization_members`: owner and invited team members
+- `nck.subscriptions`: one annual Stripe-backed membership per organization
+- `nck.resources`: downloadable member-only assets
+- `nck.resource_downloads`: optional tracking for downloads
+- `nck.*`: all other NCK-owned application tables, functions, and policies
 
 ## Expected integration work
 

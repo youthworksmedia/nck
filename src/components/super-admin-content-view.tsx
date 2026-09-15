@@ -3,7 +3,8 @@ import Link from "next/link";
 import { AdminFileLibrary } from "@/components/admin-file-library";
 import { AdminResourceForm } from "@/components/admin-resource-form";
 import { AdminResourceList } from "@/components/admin-resource-list";
-import { getAdminResources, getAdminTermNotes } from "@/lib/admin-access";
+import { getAdminResources } from "@/lib/admin-access";
+import { curriculumYears, type CurriculumSection, type CurriculumYear } from "@/lib/curriculum";
 import { listStoredResourceFiles } from "@/lib/resource-assets";
 
 export async function SuperAdminContentView({
@@ -12,13 +13,12 @@ export async function SuperAdminContentView({
   activeTerm
 }: {
   activeTab: "library" | "add" | "files";
-  activeYear: "Year A" | "Year B" | "Year C";
-  activeTerm: "Term 1" | "Term 2" | "Term 3" | "Term 4";
+  activeYear: CurriculumYear;
+  activeTerm: CurriculumSection;
 }) {
-  const [resources, files, termNotes] = await Promise.all([
+  const [resources, files] = await Promise.all([
     getAdminResources(),
-    listStoredResourceFiles(),
-    getAdminTermNotes()
+    listStoredResourceFiles()
   ]);
 
   return (
@@ -54,7 +54,7 @@ export async function SuperAdminContentView({
       {activeTab === "library" ? (
         <section className="panel">
           <div className="admin-year-tabs" role="tablist" aria-label="Curriculum year tabs">
-            {(["Year A", "Year B", "Year C"] as const).map((year) => (
+            {curriculumYears.map((year) => (
               <Link
                 key={year}
                 href={`/content?year=${encodeURIComponent(year)}`}
@@ -71,7 +71,6 @@ export async function SuperAdminContentView({
             files={files}
             activeYear={activeYear}
             activeTerm={activeTerm}
-            termNotes={termNotes}
           />
         </section>
       ) : activeTab === "add" ? (

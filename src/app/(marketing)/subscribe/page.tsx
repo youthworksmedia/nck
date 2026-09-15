@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { CheckoutForm } from "@/components/checkout-form";
 import { buildPublicMetadata } from "@/lib/metadata";
-import { getPlanByTier, plans } from "@/lib/plans";
+import { getPlanByTierFromProducts, getPlans } from "@/lib/plans";
 import {
   getCheckoutProfile,
   getCurrentUser,
@@ -25,7 +25,8 @@ export const metadata: Metadata = buildPublicMetadata({
 
 export default async function SubscribePage({ searchParams }: SubscribePageProps) {
   const params = await searchParams;
-  const plan = getPlanByTier(params.tier ?? "") ?? plans[0];
+  const plans = await getPlans();
+  const plan = (await getPlanByTierFromProducts(params.tier ?? "")) ?? plans[0];
 
   const [user, membership, isOwner, isTeamMember, checkoutProfile] = await Promise.all([
     getCurrentUser(),
@@ -37,7 +38,7 @@ export default async function SubscribePage({ searchParams }: SubscribePageProps
 
   if (user && !isOwner && isTeamMember) {
     return (
-      <main className="site-shell section">
+      <main className="promo-subscribe-page">
         <div className="panel checkout-blocked">
           <span className="eyebrow">Checkout</span>
           <h1>Start a new purchase from a separate account</h1>
@@ -51,13 +52,13 @@ export default async function SubscribePage({ searchParams }: SubscribePageProps
   }
 
   return (
-    <main className="site-shell section">
-      <div className="section-head app-page-head subscribe-page-head">
+    <main className="promo-subscribe-page">
+      <div className="promo-subscribe-hero">
         <div>
-          <h1>Choose your annual plan and complete checkout</h1>
+          <p className="promo-eyebrow">Subscription</p>
+          <h1>Complete checkout</h1>
           <p>
-            This flow is set up like a real ecommerce checkout and is ready for Stripe later,
-            while still supporting safe fake-card purchases right now.
+            Set up your New Creation Kids membership and unlock curriculum access for your church team.
           </p>
         </div>
       </div>
@@ -67,7 +68,7 @@ export default async function SubscribePage({ searchParams }: SubscribePageProps
         defaults={
           isOwner
             ? checkoutProfile ?? {
-                accountHolderName: "",
+                accountHolderName: user?.email?.split("@")[0] ?? "Account holder",
                 churchName: membership.churchName,
                 email: user?.email ?? "",
                 phone: "",
@@ -81,23 +82,6 @@ export default async function SubscribePage({ searchParams }: SubscribePageProps
         }
         isSignedInOwner={isOwner}
       />
-
-      <section className="section">
-        <div className="section-head">
-          <div>
-            <span className="eyebrow">Included</span>
-            <h2>All three memberships at a glance</h2>
-          </div>
-        </div>
-        <div className="three-up">
-          {plans.map((entry) => (
-            <article key={entry.id} className="panel panel-compact">
-              <h3>{entry.name}</h3>
-              <p>{entry.studentRange}. Unlimited invited accounts and full curriculum access.</p>
-            </article>
-          ))}
-        </div>
-      </section>
     </main>
   );
 }

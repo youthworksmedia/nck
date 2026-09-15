@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { cache } from "react";
 
 import { serverEnv } from "@/lib/env";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -32,7 +33,11 @@ export function getStoredFileName(fileName: string) {
 }
 
 export function getStoredResourceBucketName() {
-  return serverEnv.supabaseResourceBucket || "resource-files";
+  return serverEnv.supabaseResourceBucket || "nck-resource-files";
+}
+
+function getLegacyResourceBucketName() {
+  return "resource-files";
 }
 
 export function getDisplayFileName(filePath: string) {
@@ -101,6 +106,16 @@ async function ensureResourceBucket() {
   const { data: bucket } = await adminSupabase.storage.getBucket(bucketName);
 
   if (!bucket) {
+    const legacyBucketName = getLegacyResourceBucketName();
+
+    if (!serverEnv.hasExplicitSupabaseResourceBucket && bucketName !== legacyBucketName) {
+      const { data: legacyBucket } = await adminSupabase.storage.getBucket(legacyBucketName);
+
+      if (legacyBucket) {
+        return adminSupabase.storage.from(legacyBucketName);
+      }
+    }
+
     const { error } = await adminSupabase.storage.createBucket(bucketName, {
       public: false
     });
@@ -144,7 +159,7 @@ export async function removeStoredResourceFile(filePath?: string | null) {
   await bucket.remove([storagePath]);
 }
 
-export async function listStoredResourceFiles(): Promise<ResourceLibraryFile[]> {
+export const listStoredResourceFiles = cache(async function listStoredResourceFiles(): Promise<ResourceLibraryFile[]> {
   const bucket = await ensureResourceBucket();
 
   const files = await Promise.all(
@@ -177,6 +192,69 @@ export async function listStoredResourceFiles(): Promise<ResourceLibraryFile[]> 
   );
 
   return files.flat().sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
+});
+
+const listStoredResourceFilesByKind = cache(async function listStoredResourceFilesByKind(kind: string) {
+  const bucket = await ensureResourceBucket();
+  const { data, error } = await bucket.list(kind, {
+    limit: 1000,
+    sortBy: { column: "created_at", order: "desc" }
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data ?? [];
+});
+
+export async function getStoredResourceFileSizes(filePaths: Array<string | null | undefined>) {
+  const normalizedPaths = [...new Set(filePaths.map((filePath) => normalizeResourceStoragePath(filePath)).filter(Boolean))] as string[];
+
+  if (!normalizedPaths.length) {
+    return new Map<string, number>();
+  }
+
+  const namesByKind = new Map<string, Set<string>>();
+
+  for (const path of normalizedPaths) {
+    const [kind, name] = path.split("/");
+
+    if (!kind || !name) {
+      continue;
+    }
+
+    const existing = namesByKind.get(kind) ?? new Set<string>();
+    existing.add(name);
+    namesByKind.set(kind, existing);
+  }
+
+  const entriesByKind = await Promise.all(
+    [...namesByKind.entries()].map(async ([kind, names]) => ({
+      kind,
+      names,
+      entries: await listStoredResourceFilesByKind(kind)
+    }))
+  );
+
+  const sizeLookup = new Map<string, number>();
+
+  for (const group of entriesByKind) {
+    for (const entry of group.entries) {
+      if (!entry.name || !group.names.has(entry.name)) {
+        continue;
+      }
+
+      const storagePath = `${group.kind}/${entry.name}`;
+      const sizeBytes = typeof entry.metadata?.size === "number" ? entry.metadata.size : 0;
+
+      if (sizeBytes > 0) {
+        sizeLookup.set(storagePath, sizeBytes);
+      }
+    }
+  }
+
+  return sizeLookup;
 }
 
 export async function downloadStoredResourceFile(

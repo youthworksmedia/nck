@@ -4,6 +4,7 @@ import { Pencil, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { ModalPortal } from "@/components/modal-portal";
 import { PasswordInput } from "@/components/password-input";
 
 type TeamPasswordFormProps = {
@@ -53,6 +54,7 @@ export function TeamPasswordForm({
       </button>
 
       {isOpen ? (
+        <ModalPortal>
         <div className="modal-backdrop" role="presentation" onClick={() => setIsOpen(false)}>
           <div
             className="modal-card"
@@ -147,6 +149,7 @@ export function TeamPasswordForm({
             </form>
           </div>
         </div>
+        </ModalPortal>
       ) : null}
     </>
   );

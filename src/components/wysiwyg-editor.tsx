@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import {
   Bold,
   Code2,
@@ -21,6 +22,10 @@ type Props = {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+};
+
+export type WysiwygEditorHandle = {
+  getHtml: () => string;
 };
 
 type Command =
@@ -200,7 +205,10 @@ function textToHtml(raw: string) {
     .join("");
 }
 
-export function WysiwygEditor({ label, value, onChange, placeholder }: Props) {
+export const WysiwygEditor = forwardRef<WysiwygEditorHandle, Props>(function WysiwygEditor(
+  { label, value, onChange, placeholder },
+  ref
+) {
   const editorId = useId();
   const editorRef = useRef<HTMLDivElement | null>(null);
   const [sourceMode, setSourceMode] = useState(false);
@@ -216,8 +224,19 @@ export function WysiwygEditor({ label, value, onChange, placeholder }: Props) {
   }, [sourceMode, value]);
 
   function commitEditorHtml() {
-    onChange(sanitizeHtml(editorRef.current?.innerHTML ?? ""));
+    const nextValue = getCurrentHtml();
+    flushSync(() => {
+      onChange(nextValue);
+    });
   }
+
+  function getCurrentHtml() {
+    return sanitizeHtml(sourceMode ? value : editorRef.current?.innerHTML ?? value);
+  }
+
+  useImperativeHandle(ref, () => ({
+    getHtml: getCurrentHtml
+  }));
 
   function applyCommand(command: Command) {
     editorRef.current?.focus();
@@ -424,4 +443,4 @@ export function WysiwygEditor({ label, value, onChange, placeholder }: Props) {
       )}
     </div>
   );
-}
+});

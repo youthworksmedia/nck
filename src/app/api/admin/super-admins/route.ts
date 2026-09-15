@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   const isAuthenticated = await isCurrentUserSuperAdmin();
 
   if (!isAuthenticated) {
-    return NextResponse.json({ message: "Super admin access required." }, { status: 401 });
+    return NextResponse.json({ message: "Admin access required." }, { status: 401 });
   }
 
   const payload = schema.safeParse(await request.json());
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
 
     if (createUserError || !createdUser.user) {
       return NextResponse.json(
-        { message: createUserError?.message ?? "Unable to create super admin account." },
+        { message: createUserError?.message ?? "Unable to create Admin account." },
         { status: 400 }
       );
     }
@@ -90,5 +90,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: error.message }, { status: 400 });
   }
 
-  return NextResponse.json({ message: `Super admin access added for ${email}.` });
+  return NextResponse.json({ message: `Admin access added for ${email}.` });
 }

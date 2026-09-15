@@ -5,9 +5,11 @@ export const siteDescription =
   "Bible teaching resources, curriculum planning, downloadable worksheets, shared accounts, and lesson resources for churches and kids ministry teams.";
 
 const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL
-  ? process.env.NEXT_PUBLIC_SITE_URL
+  ? process.env.NEXT_PUBLIC_SITE_URL.includes("localhost") && process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL}`
+    : process.env.NEXT_PUBLIC_SITE_URL
   : process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL}`
     : "http://localhost:3001";
 
 export const metadataBase = new URL(rawSiteUrl);

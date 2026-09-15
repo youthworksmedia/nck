@@ -71,11 +71,11 @@ export async function resetSuperAdminPassword() {
   });
 
   if (roleError) {
-    if (roleError.message.includes("public.admin_roles")) {
+    if (roleError.message.includes("nck.admin_roles") || roleError.message.includes("public.admin_roles")) {
       return {
         ok: false,
         message:
-          "The admin setup is incomplete. Run the admin_roles table SQL in Supabase first, then try reset again."
+          "The admin setup is incomplete. Run the NCK database migrations in Supabase first, then try reset again."
       };
     }
 
