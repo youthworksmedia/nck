@@ -92,7 +92,7 @@ export function NckPromoHome({ plans, isLoggedIn = false }: { plans: Plan[]; isL
       <section className="promo-light promo-sample-section" id="sample">
         <div className="promo-container promo-narrow">
           <p className="promo-eyebrow">Sample lesson</p>
-          <h2>See a lesson before you<br />commit.</h2>
+          <h2>See a lesson before you commit.</h2>
           <p className="promo-section-caption">Download a sample week below or click preview above to see the member area.</p>
           <div className="promo-sample-grid">
             <article className="promo-sample-card">
@@ -163,9 +163,6 @@ export function NckPromoHome({ plans, isLoggedIn = false }: { plans: Plan[]; isL
             Hear from the team behind New Creation Kids on the heart of the curriculum and what makes it different for
             your church.
           </p>
-          <a className="promo-scope-link" href="/nck-promo/NCK-Scope-Sequence.pdf" target="_blank" rel="noreferrer">
-            Download Scope and Sequence
-          </a>
         </div>
       </section>
 
@@ -194,7 +191,7 @@ export function NckPromoHome({ plans, isLoggedIn = false }: { plans: Plan[]; isL
       <section className="promo-light promo-cycle-section" id="teaching-cycle">
         <div className="promo-container promo-center">
           <p className="promo-eyebrow promo-centered">The teaching cycle</p>
-          <h2>The whole Bible story, start<br />to finish.</h2>
+          <h2>The whole Bible story,<br />start to finish.</h2>
           <p className="promo-section-caption">
             New Creation Kids moves children through Scripture&apos;s one big story on a repeating cycle.
           </p>
@@ -212,6 +209,9 @@ export function NckPromoHome({ plans, isLoggedIn = false }: { plans: Plan[]; isL
             <span aria-hidden="true" />
             The cycle repeats every three years, so a child meets the whole story several times before Year 6.
           </div>
+          <a className="promo-scope-link" href="/nck-promo/NCK-Scope-Sequence.pdf" target="_blank" rel="noreferrer">
+            Download Scope and Sequence
+          </a>
         </div>
       </section>
 
@@ -234,11 +234,11 @@ export function NckPromoHome({ plans, isLoggedIn = false }: { plans: Plan[]; isL
                 <div className="promo-plan-summary" dangerouslySetInnerHTML={{ __html: plan.summaryHtml }} />
                 {isLoggedIn ? (
                   <button type="button" className="promo-hot-button promo-hot-button-disabled" disabled>
-                    Buy {plan.name}
+                    Choose this plan
                   </button>
                 ) : (
                   <Link href={`/subscribe?tier=${plan.id}`} className="promo-hot-button">
-                    Buy {plan.name}
+                    Choose this plan
                   </Link>
                 )}
               </article>

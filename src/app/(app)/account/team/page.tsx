@@ -3,6 +3,7 @@ import Image from "next/image";
 
 import { DeleteMemberButton } from "@/components/delete-member-button";
 import { InviteTeamForm } from "@/components/invite-team-form";
+import { ReinviteMemberButton } from "@/components/reinvite-member-button";
 import { TeamPasswordForm } from "@/components/team-password-form";
 import { getSuperAdminEmails, isCurrentUserSuperAdmin } from "@/lib/admin-access";
 import {
@@ -154,6 +155,9 @@ export default async function AccountTeamPage() {
                     </div>
                     {isOwner ? (
                       <div className="account-team-member-actions">
+                        {member.status === "invited" && member.role !== "owner" ? (
+                          <ReinviteMemberButton memberId={member.id} email={member.email} />
+                        ) : null}
                         <TeamPasswordForm
                           memberId={member.id}
                           name={member.name}
