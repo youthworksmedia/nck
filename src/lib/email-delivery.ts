@@ -54,6 +54,81 @@ function textToHtml(text: string) {
   return `<p>${escapeHtml(text).replace(/\n{2,}/g, "</p><p>").replace(/\n/g, "<br />")}</p>`;
 }
 
+function normalizeSiteUrl(siteUrl?: string) {
+  return (siteUrl || "https://new-creation-kids.vercel.app").replace(/\/+$/, "");
+}
+
+function linkifyEscapedText(value: string) {
+  return escapeHtml(value).replace(
+    /(https?:\/\/[^\s<]+)/g,
+    '<a href="$1" style="color:#2c89c1;text-decoration:underline;">$1</a>'
+  );
+}
+
+function textToEmailContent(text: string) {
+  return text
+    .trim()
+    .split(/\n{2,}/)
+    .map((paragraph) => {
+      const html = paragraph
+        .split(/\n/)
+        .map((line) => linkifyEscapedText(line))
+        .join("<br />");
+
+      return `<p style="margin:0 0 24px 0;color:#293344;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:1.58;">${html}</p>`;
+    })
+    .join("");
+}
+
+function textToEmailHtml(text: string, siteUrl?: string) {
+  const baseUrl = normalizeSiteUrl(siteUrl);
+  const logoUrl = `${baseUrl}/nck-logo-horiz-public.svg`;
+  const contentHtml = textToEmailContent(text);
+
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>New Creation Kids</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f3f6fa;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f3f6fa;border-collapse:collapse;">
+      <tr>
+        <td align="center" style="padding:30px 12px;">
+          <table role="presentation" width="760" cellspacing="0" cellpadding="0" border="0" style="width:760px;max-width:100%;border-collapse:collapse;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 18px 48px rgba(15,23,42,0.12);">
+            <tr>
+              <td style="background:#211d1b;padding:40px 44px;">
+                <img src="${logoUrl}" width="226" alt="New Creation Kids" style="display:block;width:226px;max-width:70%;height:auto;border:0;outline:none;text-decoration:none;" />
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:58px 46px 48px 46px;background:#ffffff;">
+                ${contentHtml || textToHtml(text)}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 46px 48px 46px;background:#ffffff;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;width:100%;">
+                  <tr>
+                    <td style="border-top:1px solid #d9dee7;padding-top:24px;">
+                      <p style="margin:0;color:#8a94a6;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;">
+                        <strong style="font-weight:700;">New Creation Kids</strong><br />
+                        Helping kids know and follow Jesus.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
 export async function sendWelcomeEmail(input: WelcomeEmailInput): Promise<SendEmailResult> {
   if (!serverEnv.resendApiKey) {
     return {
@@ -87,7 +162,8 @@ export async function sendWelcomeEmail(input: WelcomeEmailInput): Promise<SendEm
     to: input.to,
     subject,
     text,
-    from: formatEmailSender(generalSettings)
+    from: formatEmailSender(generalSettings),
+    siteUrl: generalSettings.siteUrl
   });
 }
 
@@ -99,6 +175,7 @@ export async function sendInviteEmail(input: ActionEmailInput): Promise<SendEmai
     templateKey: "invite",
     to: input.to,
     from: formatEmailSender(generalSettings),
+    siteUrl: generalSettings.siteUrl,
     values: {
       actionUrl: emailUrl,
       inviteUrl: emailUrl,
@@ -117,6 +194,7 @@ export async function sendResetEmail(input: ActionEmailInput): Promise<SendEmail
     templateKey: "reset",
     to: input.to,
     from: formatEmailSender(generalSettings),
+    siteUrl: generalSettings.siteUrl,
     values: {
       actionUrl: emailUrl,
       inviteUrl: emailUrl,
@@ -166,6 +244,7 @@ async function sendLifecycleEmail(templateKey: EmailTemplateKey, input: Lifecycl
     templateKey,
     to: input.to,
     from: formatEmailSender(generalSettings),
+    siteUrl: generalSettings.siteUrl,
     values: {
       accountHolderName: input.accountHolderName,
       accountUrl: `${generalSettings.siteUrl}/account`,
@@ -187,6 +266,7 @@ async function sendActionEmail(input: {
   templateKey: EmailTemplateKey;
   to: string;
   from: string;
+  siteUrl: string;
   values: Record<string, string>;
 }): Promise<SendEmailResult> {
   const templates = await getEmailTemplates();
@@ -203,11 +283,12 @@ async function sendActionEmail(input: {
     to: input.to,
     subject,
     text,
-    from: input.from
+    from: input.from,
+    siteUrl: input.siteUrl
   });
 }
 
-async function sendEmail(input: { to: string; subject: string; text: string; from: string }): Promise<SendEmailResult> {
+async function sendEmail(input: { to: string; subject: string; text: string; from: string; siteUrl?: string }): Promise<SendEmailResult> {
   if (!serverEnv.resendApiKey || !input.from) {
     return {
       ok: false,
@@ -226,7 +307,7 @@ async function sendEmail(input: { to: string; subject: string; text: string; fro
       from: input.from,
       to: input.to,
       subject: input.subject,
-      html: textToHtml(input.text),
+      html: textToEmailHtml(input.text, input.siteUrl),
       text: input.text
     })
   });
