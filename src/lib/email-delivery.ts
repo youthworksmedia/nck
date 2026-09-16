@@ -82,7 +82,7 @@ function textToEmailContent(text: string) {
 
 function textToEmailHtml(text: string, siteUrl?: string) {
   const baseUrl = normalizeSiteUrl(siteUrl);
-  const logoUrl = `${baseUrl}/nck-logo.png`;
+  const logoUrl = `${baseUrl}/nck-logo-horiz.svg`;
   const contentHtml = textToEmailContent(text);
 
   return `<!doctype html>
@@ -99,7 +99,7 @@ function textToEmailHtml(text: string, siteUrl?: string) {
           <table role="presentation" width="760" cellspacing="0" cellpadding="0" border="0" style="width:760px;max-width:100%;border-collapse:collapse;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 18px 48px rgba(15,23,42,0.12);">
             <tr>
               <td style="background:#211d1b;padding:40px 44px;">
-                <img src="${logoUrl}" width="139" height="160" alt="New Creation Kids" style="display:block;width:139px;max-width:42%;height:auto;border:0;outline:none;text-decoration:none;" />
+                <img src="${logoUrl}" width="226" height="61" alt="New Creation Kids" style="display:block;width:226px;max-width:70%;height:auto;border:0;outline:none;text-decoration:none;" />
               </td>
             </tr>
             <tr>
