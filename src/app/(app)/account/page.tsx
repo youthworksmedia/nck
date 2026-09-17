@@ -21,6 +21,8 @@ import { getPublicResources } from "@/lib/public-resources";
 import { getPlans } from "@/lib/plans";
 import { buildPrivateMetadata } from "@/lib/metadata";
 import { formatLongDateWithOrdinal } from "@/lib/time";
+import { normalizeCurriculumSection, normalizeCurriculumYear } from "@/lib/curriculum";
+import type { Resource } from "@/types";
 
 export const metadata: Metadata = buildPrivateMetadata({
   title: "Dashboard",
@@ -52,6 +54,19 @@ function getTimeOfDayGreeting() {
   }
 
   return "Good evening";
+}
+
+function formatVolumeLabel(yearCycle?: string) {
+  const year = normalizeCurriculumYear(yearCycle);
+  return year.replace(/^Volume\s+/i, "Vol ");
+}
+
+function formatLastResourceLabel(resource: Resource) {
+  const volume = formatVolumeLabel(resource.yearCycle);
+  const unit = normalizeCurriculumSection(resource.term);
+  const week = `Week ${resource.lessonNumber ?? 1}`;
+
+  return `${resource.title} (${volume} / ${unit} / ${week})`;
 }
 
 export default async function AccountPage({ searchParams }: AccountPageProps) {
@@ -109,7 +124,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
     ? (`/resources/${dashboardState.lastResource.id}` as Route)
     : null;
   const lastResourceLabel = dashboardState.lastResource
-    ? `Week ${dashboardState.lastResource.lessonNumber ?? 1} - ${dashboardState.lastResource.title}`
+    ? formatLastResourceLabel(dashboardState.lastResource)
     : null;
 
   return (
@@ -175,7 +190,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
             />
             {continueHref && dashboardState.lastResource ? (
               <Link href={continueHref} className="dashboard-continue-card">
-                <span>Last visit:</span>
+                <span>Start with:</span>
                 <strong>{lastResourceLabel}</strong>
               </Link>
             ) : (
