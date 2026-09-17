@@ -62,11 +62,15 @@ function formatVolumeLabel(yearCycle?: string) {
 }
 
 function formatLastResourceLabel(resource: Resource) {
+  return resource.title;
+}
+
+function formatLastResourceMeta(resource: Resource) {
   const volume = formatVolumeLabel(resource.yearCycle);
   const unit = normalizeCurriculumSection(resource.term);
   const week = `Week ${resource.lessonNumber ?? 1}`;
 
-  return `${resource.title} (${volume} / ${unit} / ${week})`;
+  return `(${volume} / ${unit} / ${week})`;
 }
 
 export default async function AccountPage({ searchParams }: AccountPageProps) {
@@ -125,6 +129,9 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
     : null;
   const lastResourceLabel = dashboardState.lastResource
     ? formatLastResourceLabel(dashboardState.lastResource)
+    : null;
+  const lastResourceMeta = dashboardState.lastResource
+    ? formatLastResourceMeta(dashboardState.lastResource)
     : null;
 
   return (
@@ -189,9 +196,10 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
               dangerouslySetInnerHTML={{ __html: returningWelcomeHtml }}
             />
             {continueHref && dashboardState.lastResource ? (
-              <Link href={continueHref} className="dashboard-continue-card">
-                <span>Start with:</span>
+              <Link href={continueHref} className="dashboard-continue-card dashboard-continue-card-last-visit">
+                <span>Last visit:</span>
                 <strong>{lastResourceLabel}</strong>
+                <small>{lastResourceMeta}</small>
               </Link>
             ) : (
               <Link href="/resources" className="dashboard-continue-card">
