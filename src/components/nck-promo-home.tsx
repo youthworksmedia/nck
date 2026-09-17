@@ -229,7 +229,7 @@ export function NckPromoHome({ plans, isLoggedIn = false }: { plans: Plan[]; isL
                 <h3>{plan.name}</h3>
                 <p className="promo-plan-price">
                   {formatCurrency(plan.annualPrice, plan.currency)}
-                  <span>/year</span>
+                  <span>/year +GST</span>
                 </p>
                 <div className="promo-plan-summary" dangerouslySetInnerHTML={{ __html: plan.summaryHtml }} />
                 {isLoggedIn ? (

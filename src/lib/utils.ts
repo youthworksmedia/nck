@@ -6,11 +6,14 @@ export function cn(...inputs: Array<string | false | null | undefined>) {
 
 export function formatCurrency(amount: number, currency = "AUD") {
   const currencyCode = currency.toUpperCase();
+  const hasCents = !Number.isInteger(amount);
+
   return new Intl.NumberFormat("en-AU", {
     style: "currency",
     currency: currencyCode,
     currencyDisplay: "code",
-    maximumFractionDigits: 0
+    minimumFractionDigits: hasCents ? 2 : 0,
+    maximumFractionDigits: 2
   })
     .format(amount)
     .replace(/\s+/g, " ");

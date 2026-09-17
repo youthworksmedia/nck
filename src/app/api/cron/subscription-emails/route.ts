@@ -7,6 +7,7 @@ import {
   sendRenewalConfirmationEmail,
   sendRenewalReminderEmail
 } from "@/lib/email-delivery";
+import { getBillingBreakdown } from "@/lib/billing";
 import { getGeneralEmailSettings } from "@/lib/email-settings";
 import { serverEnv } from "@/lib/env";
 import { createOrderNumber } from "@/lib/checkout";
@@ -173,7 +174,9 @@ export async function GET(request: Request) {
 
         const renewalStartedAt = today;
         const renewalDate = formatISO(addYears(new Date(subscription.current_period_end), 1));
+        const billingCountry = subscription.organizations?.billing_country ?? "Australia";
         const amount = getPlanPrice(plan);
+        const billing = getBillingBreakdown(amount, billingCountry);
         const orderNumber = createOrderNumber(plan.id);
         const renewalEventKey = eventKey(subscription.id, "renewal_confirmation", today);
         const { data: existingRenewal } = await adminSupabase
@@ -196,7 +199,7 @@ export async function GET(request: Request) {
           account_holder_email: owner.invitation_email,
           church_name: churchName,
           plan_tier: plan.id,
-          amount,
+          amount: billing.total,
           currency: plan.currency.toLowerCase(),
           payment_status: "paid",
           payment_provider: "fake-recurring",
@@ -206,7 +209,7 @@ export async function GET(request: Request) {
           billing_suburb: subscription.organizations?.billing_suburb ?? "",
           billing_state: subscription.organizations?.billing_state ?? "",
           billing_postcode: subscription.organizations?.billing_postcode ?? "",
-          billing_country: subscription.organizations?.billing_country ?? "Australia",
+          billing_country: billingCountry,
           billing_phone: subscription.organizations?.billing_phone ?? ""
         });
 
@@ -237,7 +240,7 @@ export async function GET(request: Request) {
           renewalDate: formatLongDateWithOrdinal(renewalDate),
           accessEndsDate: formatLongDateWithOrdinal(renewalDate),
           daysUntilRenewal: 365,
-          amount: formatCurrency(amount, plan.currency)
+          amount: `${formatCurrency(billing.total, plan.currency)}${billing.gstApplies ? " including GST" : ""}`
         };
         const [renewalEmail, paymentEmail] = await Promise.all([
           sendRenewalConfirmationEmail(updatedCommon),

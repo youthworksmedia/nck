@@ -11,7 +11,7 @@ export function PlanCard({ plan }: { plan: Plan }) {
       <p className="plan-audience">{plan.studentRange}</p>
       <p className="price">
         {formatCurrency(plan.annualPrice, plan.currency)}
-        <span>/year</span>
+        <span>/year +GST</span>
       </p>
       <div className="plan-summary" dangerouslySetInnerHTML={{ __html: plan.summaryHtml }} />
       <Link

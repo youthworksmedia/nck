@@ -8,7 +8,8 @@ import {
   getFakeExpiryDate,
   isAcceptedFakeCard
 } from "@/lib/checkout";
-import { sendRenewalConfirmationEmail, sendWelcomeEmail } from "@/lib/email-delivery";
+import { getBillingBreakdown } from "@/lib/billing";
+import { sendPaymentSuccessEmail, sendRenewalConfirmationEmail, sendWelcomeEmail } from "@/lib/email-delivery";
 import { getGeneralEmailSettings } from "@/lib/email-settings";
 import { isStrongPassword, passwordRequirementText } from "@/lib/password";
 import { getPlanByTierFromProducts } from "@/lib/plans";
@@ -16,7 +17,8 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getRequestSupabaseAuth } from "@/lib/supabase/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { startTimer, withTiming } from "@/lib/timing";
-import { addYears, formatISO } from "@/lib/time";
+import { addYears, formatISO, formatLongDateWithOrdinal } from "@/lib/time";
+import { formatCurrency } from "@/lib/utils";
 
 const checkoutSchema = z.object({
   tier: z.enum(["essential", "growth", "scale"]),
@@ -333,6 +335,7 @@ export async function POST(request: Request) {
     const orderNumber = createOrderNumber(plan.id);
     const cardBrand = detectFakeCardBrand(input.cardNumber);
     const cardLast4 = getCardLast4(input.cardNumber);
+    const billing = getBillingBreakdown(plan.annualPrice, input.country);
 
     let createdUserId: string | null = null;
     let createdOrganizationId: string | null = null;
@@ -492,7 +495,7 @@ export async function POST(request: Request) {
         account_holder_email: accountEmail,
         church_name: accountDetails.churchName,
         plan_tier: plan.id,
-        amount: plan.annualPrice,
+        amount: billing.total,
         currency: plan.currency.toLowerCase(),
         payment_status: "paid",
         payment_provider: "fake",
@@ -529,7 +532,15 @@ export async function POST(request: Request) {
       updated_at: new Date().toISOString()
     });
 
-    const [generalSettings, welcomeEmail] = await Promise.all([
+    const paymentEmailInput = {
+      to: accountEmail,
+      accountHolderName: accountDetails.accountHolderName,
+      churchName: accountDetails.churchName,
+      planName: plan.name,
+      renewalDate: formatLongDateWithOrdinal(renewalDates.renewalDate),
+      amount: `${formatCurrency(billing.total, plan.currency)}${billing.gstApplies ? " including GST" : ""}`
+    };
+    const [generalSettings, welcomeEmail, paymentEmail] = await Promise.all([
       getGeneralEmailSettings(),
       isSignedInOwner
         ? sendRenewalConfirmationEmail({
@@ -537,21 +548,24 @@ export async function POST(request: Request) {
             accountHolderName: accountDetails.accountHolderName,
             churchName: accountDetails.churchName,
             planName: plan.name,
-            renewalDate: renewalDates.renewalDate
+            renewalDate: formatLongDateWithOrdinal(renewalDates.renewalDate),
+            amount: paymentEmailInput.amount
           })
         : sendWelcomeEmail({
             to: accountEmail,
             accountHolderName: accountDetails.accountHolderName,
             churchName: accountDetails.churchName,
             planName: plan.name
-          })
+          }),
+      sendPaymentSuccessEmail(paymentEmailInput)
     ]);
 
     return NextResponse.json({
       message: `Purchase successful. Order ${orderNumber} is active.`,
       redirectTo: `${generalSettings.siteUrl}/account?checkout=success&order=${encodeURIComponent(orderNumber)}`,
       requiresSignIn: !isSignedInOwner,
-      welcomeEmail
+      welcomeEmail,
+      paymentEmail
     });
   } catch (error) {
     if (orderId) {

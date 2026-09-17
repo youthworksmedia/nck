@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { CheckCircle2, CreditCard, LockKeyhole, ShieldCheck, ShoppingBag } from "lucide-react";
 
 import { PasswordInput } from "@/components/password-input";
+import { getBillingBreakdown } from "@/lib/billing";
 import { acceptedFakeCards, detectCardBrandFromPrefix } from "@/lib/checkout";
 import { countries } from "@/lib/countries";
 import { isStrongPassword, passwordRequirementText } from "@/lib/password";
@@ -59,6 +60,7 @@ export function CheckoutForm({
     []
   );
   const detectedCardBrand = useMemo(() => detectCardBrandFromPrefix(cardNumber), [cardNumber]);
+  const billing = useMemo(() => getBillingBreakdown(plan.annualPrice, country), [country, plan.annualPrice]);
 
   return (
     <div className="checkout-layout">
@@ -399,7 +401,7 @@ export function CheckoutForm({
 
         <button className="button button-primary checkout-submit" type="submit" disabled={isPending}>
           <LockKeyhole size={16} />
-          <span>{isPending ? "Completing purchase..." : `Complete purchase · ${formatCurrency(plan.annualPrice, plan.currency)}`}</span>
+          <span>{isPending ? "Completing purchase..." : `Complete purchase · ${formatCurrency(billing.total, plan.currency)}`}</span>
         </button>
         <p className="form-status">{message}</p>
       </form>
@@ -409,9 +411,25 @@ export function CheckoutForm({
         <h2>{plan.name}</h2>
         <div className="plan-summary" dangerouslySetInnerHTML={{ __html: plan.summaryHtml }} />
         <div className="checkout-summary-price">
-          <strong>{formatCurrency(plan.annualPrice, plan.currency)}</strong>
+          <strong>{formatCurrency(billing.total, plan.currency)}</strong>
           <span>per year</span>
         </div>
+        <dl className="checkout-tax-summary">
+          <div>
+            <dt>Subscription</dt>
+            <dd>{formatCurrency(billing.subtotal, plan.currency)}</dd>
+          </div>
+          {billing.gstApplies ? (
+            <div>
+              <dt>GST</dt>
+              <dd>{formatCurrency(billing.gstAmount, plan.currency)}</dd>
+            </div>
+          ) : null}
+          <div>
+            <dt>Total</dt>
+            <dd>{formatCurrency(billing.total, plan.currency)}</dd>
+          </div>
+        </dl>
         <div className="checkout-trust">
           <CheckCircle2 size={16} />
           <p>Ready for Stripe later. Running on a fake-card checkout path right now.</p>

@@ -1,6 +1,7 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { NextResponse } from "next/server";
 
+import { getIncludedGstBreakdown } from "@/lib/billing";
 import { getPlans } from "@/lib/plans";
 import { formatLongDateWithOrdinal } from "@/lib/time";
 import { getCurrentOrganizationMembership } from "@/lib/portal";
@@ -75,6 +76,7 @@ export async function GET(_request: Request, context: RouteContext) {
   const regular = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const planName = plans.find((plan) => plan.id === order.plan_tier)?.name ?? order.plan_tier;
+  const billing = getIncludedGstBreakdown(order.amount, order.billing_country);
 
   let y = 785;
   const drawLine = (label: string, value: string, size = 11) => {
@@ -128,7 +130,11 @@ export async function GET(_request: Request, context: RouteContext) {
   drawLine("Church", order.church_name);
   drawLine("Payment", `${order.card_brand ?? "Card"} ending in ${order.card_last4 ?? "----"}`);
   drawLine("Status", order.payment_status);
-  drawLine("Amount", formatCurrency(order.amount, order.currency));
+  drawLine("Subscription", formatCurrency(billing.subtotal, order.currency));
+  if (billing.gstApplies) {
+    drawLine("GST", formatCurrency(billing.gstAmount, order.currency));
+  }
+  drawLine("Total", formatCurrency(billing.total, order.currency));
   drawLine(
     "Billing address",
     `${order.billing_address_line1}, ${order.billing_suburb}, ${order.billing_state} ${order.billing_postcode}, ${order.billing_country}`

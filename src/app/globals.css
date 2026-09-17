@@ -9200,6 +9200,32 @@ button {
   line-height: 1;
 }
 
+.checkout-tax-summary {
+  display: grid;
+  gap: 0.45rem;
+  margin: 1rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.checkout-tax-summary div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.checkout-tax-summary dt,
+.checkout-tax-summary dd {
+  margin: 0;
+}
+
+.checkout-tax-summary div:last-child {
+  color: var(--ink);
+  font-weight: 800;
+}
+
 .checkout-trust {
   display: flex;
   align-items: flex-start;
