@@ -10,7 +10,7 @@ import type { AdminDiscountCode } from "@/types";
 type DiscountDraft = {
   code: string;
   description: string;
-  planTier: string;
+  planTiers: string[];
   discountType: "amount" | "percent";
   discountValue: string;
   maxUsesPerAccount: string;
@@ -27,7 +27,7 @@ function draftFromDiscount(discount: AdminDiscountCode): DiscountDraft {
   return {
     code: discount.code,
     description: discount.description,
-    planTier: discount.planTier,
+    planTiers: discount.planTiers,
     discountType: discount.discountType,
     discountValue: String(discount.discountValue),
     maxUsesPerAccount: discount.maxUsesPerAccount ? String(discount.maxUsesPerAccount) : "",
@@ -41,7 +41,7 @@ function emptyDraft(products: Plan[]): DiscountDraft {
   return {
     code: "",
     description: "",
-    planTier: products[0]?.id ?? "essential",
+    planTiers: products[0]?.id ? [products[0].id] : ["essential"],
     discountType: "percent",
     discountValue: "10",
     maxUsesPerAccount: "1",
@@ -72,15 +72,23 @@ export function AdminDiscountList({
   const [message, setMessage] = useState("Create discount codes for checkout.");
   const [savingId, setSavingId] = useState<string | null>(null);
 
-  function productName(planTier: string) {
-    return products.find((product) => product.id === planTier)?.name ?? planTier;
+  function productNames(planTiers: string[]) {
+    return planTiers
+      .map((planTier) => products.find((product) => product.id === planTier)?.name ?? planTier)
+      .join(", ");
+  }
+
+  function toggleProduct(draft: DiscountDraft, productId: string) {
+    return draft.planTiers.includes(productId)
+      ? draft.planTiers.filter((planTier) => planTier !== productId)
+      : [...draft.planTiers, productId];
   }
 
   function payloadFromDraft(draft: DiscountDraft) {
     return {
       code: draft.code,
       description: draft.description,
-      planTier: draft.planTier,
+      planTiers: draft.planTiers,
       discountType: draft.discountType,
       discountValue: Number(draft.discountValue),
       maxUsesPerAccount: draft.maxUsesPerAccount ? Number(draft.maxUsesPerAccount) : null,
@@ -182,16 +190,21 @@ export function AdminDiscountList({
             required
           />
         </label>
-        <label>
-          Product
-          <select value={draft.planTier} onChange={(event) => onChange({ planTier: event.target.value })}>
+        <fieldset className="admin-discount-product-options">
+          <legend>Products</legend>
+          <div>
             {products.map((product) => (
-              <option key={product.id} value={product.id}>
-                {product.name}
-              </option>
+              <label className="admin-checkbox-row" key={product.id}>
+                <input
+                  type="checkbox"
+                  checked={draft.planTiers.includes(product.id)}
+                  onChange={() => onChange({ planTiers: toggleProduct(draft, product.id) })}
+                />
+                <span>{product.name}</span>
+              </label>
             ))}
-          </select>
-        </label>
+          </div>
+        </fieldset>
         <label>
           Type
           <select
@@ -267,7 +280,7 @@ export function AdminDiscountList({
         <div className="section-head admin-product-head">
           <div>
             <h2>New discount</h2>
-            <p>{discountSummary(newDraft)} for {productName(newDraft.planTier)}</p>
+            <p>{discountSummary(newDraft)} for {productNames(newDraft.planTiers)}</p>
           </div>
         </div>
         {renderFields(newDraft, (next) => setNewDraft((current) => ({ ...current, ...next })))}
@@ -289,7 +302,7 @@ export function AdminDiscountList({
               <div>
                 <h2>{draft.code}</h2>
                 <p>
-                  {discountSummary(draft)} for {productName(draft.planTier)} · {discount.redemptionCount} used
+                  {discountSummary(draft)} for {productNames(draft.planTiers)} · {discount.redemptionCount} used
                 </p>
               </div>
               <strong className="admin-product-price">{draft.active ? "Active" : "Inactive"}</strong>

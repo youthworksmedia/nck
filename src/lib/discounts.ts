@@ -11,6 +11,7 @@ export type DiscountCode = {
   code: string;
   description: string;
   planTier: PlanTier;
+  planTiers: PlanTier[];
   discountType: DiscountType;
   discountValue: number;
   maxUsesPerAccount: number | null;
@@ -39,12 +40,27 @@ export function normalizeDiscountCode(code: string) {
   return code.trim().toUpperCase().replace(/\s+/g, "");
 }
 
+function normalizePlanTiers(value: unknown, fallback: PlanTier): PlanTier[] {
+  if (!Array.isArray(value)) {
+    return [fallback];
+  }
+
+  const tiers = value.filter((tier): tier is PlanTier =>
+    tier === "essential" || tier === "growth" || tier === "scale"
+  );
+
+  return tiers.length ? tiers : [fallback];
+}
+
 export function normalizeDiscountRow(row: Record<string, unknown>): DiscountCode {
+  const planTier = String(row.plan_tier ?? "essential") as PlanTier;
+
   return {
     id: String(row.id ?? ""),
     code: String(row.code ?? ""),
     description: String(row.description ?? ""),
-    planTier: String(row.plan_tier ?? "essential") as PlanTier,
+    planTier,
+    planTiers: normalizePlanTiers(row.plan_tiers, planTier),
     discountType: String(row.discount_type ?? "amount") as DiscountType,
     discountValue: Number(row.discount_value ?? 0),
     maxUsesPerAccount:
@@ -106,7 +122,7 @@ export async function validateDiscountCode(
   const discount = normalizeDiscountRow(data as Record<string, unknown>);
   const today = getTodayISO();
 
-  if (discount.planTier !== input.plan.id || discount.startsOn > today || (discount.endsOn && discount.endsOn < today)) {
+  if (!discount.planTiers.includes(input.plan.id) || discount.startsOn > today || (discount.endsOn && discount.endsOn < today)) {
     return { ok: false, message: "expired" };
   }
 

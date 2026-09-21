@@ -19,7 +19,7 @@ const discountSchema = z
   .object({
     code: z.string().trim().min(2, "Add a discount code."),
     description: z.string().trim().optional().default(""),
-    planTier: z.enum(planTiers),
+    planTiers: z.array(z.enum(planTiers)).min(1, "Select at least one product."),
     discountType: z.enum(["amount", "percent"]),
     discountValue: z.coerce.number().positive("Add a discount value."),
     maxUsesPerAccount: z.coerce.number().int().positive().nullable().optional(),
@@ -61,7 +61,8 @@ export async function PUT(request: Request, context: RouteContext) {
     .update({
       code,
       description: parsed.data.description,
-      plan_tier: parsed.data.planTier,
+      plan_tier: parsed.data.planTiers[0],
+      plan_tiers: parsed.data.planTiers,
       discount_type: parsed.data.discountType,
       discount_value: parsed.data.discountValue,
       max_uses_per_account: parsed.data.maxUsesPerAccount ?? null,

@@ -201,6 +201,7 @@ create table if not exists nck.discount_codes (
   code text not null unique,
   description text not null default '',
   plan_tier nck.plan_tier not null,
+  plan_tiers jsonb not null default '[]'::jsonb,
   discount_type text not null check (discount_type in ('amount', 'percent')),
   discount_value numeric(10, 2) not null check (discount_value > 0),
   max_uses_per_account integer check (max_uses_per_account is null or max_uses_per_account > 0),
@@ -213,6 +214,13 @@ create table if not exists nck.discount_codes (
 
 create index if not exists discount_codes_plan_tier_idx
   on nck.discount_codes (plan_tier);
+
+alter table nck.discount_codes
+  add column if not exists plan_tiers jsonb not null default '[]'::jsonb;
+
+update nck.discount_codes
+set plan_tiers = jsonb_build_array(plan_tier::text)
+where plan_tiers = '[]'::jsonb;
 
 create table if not exists nck.discount_redemptions (
   id uuid primary key default gen_random_uuid(),

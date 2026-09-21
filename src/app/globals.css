@@ -8766,6 +8766,45 @@ button {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.admin-discount-product-options {
+  display: grid;
+  gap: 0.5rem;
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0.8rem;
+  border: 1px solid var(--admin-outline-variant);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.admin-discount-product-options legend {
+  padding: 0 0.25rem;
+  color: var(--admin-on-surface-variant);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.admin-discount-product-options > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+}
+
+.admin-checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--admin-on-surface);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.admin-checkbox-row input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--admin-primary);
+}
+
 .admin-discount-toggle {
   align-self: end;
   min-height: 2.75rem;
