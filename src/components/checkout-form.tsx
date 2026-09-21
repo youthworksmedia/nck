@@ -50,6 +50,16 @@ export function CheckoutForm({
   const [expiryYear, setExpiryYear] = useState(String(new Date().getFullYear() + 1));
   const [cvc, setCvc] = useState("123");
   const [acceptTerms, setAcceptTerms] = useState(true);
+  const [discountCode, setDiscountCode] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState<{
+    code: string;
+    discountAmount: number;
+    subtotal: number;
+    gstAmount: number;
+    total: number;
+    gstApplies: boolean;
+  } | null>(null);
+  const [isApplyingDiscount, setIsApplyingDiscount] = useState(false);
   const [message, setMessage] = useState(
     "Use one of the fake test cards below to complete checkout while Stripe is not connected."
   );
@@ -60,7 +70,66 @@ export function CheckoutForm({
     []
   );
   const detectedCardBrand = useMemo(() => detectCardBrandFromPrefix(cardNumber), [cardNumber]);
-  const billing = useMemo(() => getBillingBreakdown(plan.annualPrice, country), [country, plan.annualPrice]);
+  const baseBilling = useMemo(() => getBillingBreakdown(plan.annualPrice, country), [country, plan.annualPrice]);
+  const billing = appliedDiscount ?? baseBilling;
+
+  async function applyDiscountCode() {
+    const code = discountCode.trim();
+
+    if (!code) {
+      setMessage("incorrect code");
+      setAppliedDiscount(null);
+      return;
+    }
+
+    setIsApplyingDiscount(true);
+    setMessage("Applying discount...");
+
+    try {
+      const response = await fetch("/api/checkout/discount", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          code,
+          tier: plan.id,
+          country
+        })
+      });
+      const payload = (await response.json()) as {
+        message?: string;
+        code?: string;
+        discountAmount?: number;
+        subtotal?: number;
+        gstAmount?: number;
+        total?: number;
+        gstApplies?: boolean;
+      };
+
+      if (!response.ok || !payload.code) {
+        setAppliedDiscount(null);
+        setMessage(payload.message ?? "incorrect code");
+        return;
+      }
+
+      setAppliedDiscount({
+        code: payload.code,
+        discountAmount: Number(payload.discountAmount ?? 0),
+        subtotal: Number(payload.subtotal ?? 0),
+        gstAmount: Number(payload.gstAmount ?? 0),
+        total: Number(payload.total ?? 0),
+        gstApplies: Boolean(payload.gstApplies)
+      });
+      setDiscountCode(payload.code);
+      setMessage(payload.message ?? `${payload.code} applied.`);
+    } catch {
+      setAppliedDiscount(null);
+      setMessage("Discount could not be applied. Check your connection and try again.");
+    } finally {
+      setIsApplyingDiscount(false);
+    }
+  }
 
   return (
     <div className="checkout-layout">
@@ -119,6 +188,7 @@ export function CheckoutForm({
                 state: stateName,
                 postcode,
                 country,
+                discountCode: appliedDiscount?.code ?? "",
                 cardNumber,
                 nameOnCard,
                 expiryMonth,
@@ -326,7 +396,10 @@ export function CheckoutForm({
               Country
               <select
                 value={country}
-                onChange={(event) => setCountry(event.target.value)}
+                onChange={(event) => {
+                  setCountry(event.target.value);
+                  setAppliedDiscount(null);
+                }}
                 autoComplete="country-name"
                 required
               >
@@ -414,11 +487,40 @@ export function CheckoutForm({
           <strong>{formatCurrency(billing.total, plan.currency)}</strong>
           <span>per year</span>
         </div>
+        <div className="checkout-discount-box">
+          <label>
+            Discount code
+            <span className="checkout-discount-row">
+              <input
+                value={discountCode}
+                onChange={(event) => {
+                  setDiscountCode(event.target.value.toUpperCase().replace(/\s+/g, ""));
+                  setAppliedDiscount(null);
+                }}
+                placeholder="CODE"
+              />
+              <button
+                className="button button-secondary"
+                type="button"
+                onClick={applyDiscountCode}
+                disabled={isApplyingDiscount || isPending}
+              >
+                Apply
+              </button>
+            </span>
+          </label>
+        </div>
         <dl className="checkout-tax-summary">
           <div>
             <dt>Subscription</dt>
-            <dd>{formatCurrency(billing.subtotal, plan.currency)}</dd>
+            <dd>{formatCurrency(baseBilling.subtotal, plan.currency)}</dd>
           </div>
+          {appliedDiscount ? (
+            <div>
+              <dt>Discount ({appliedDiscount.code})</dt>
+              <dd>-{formatCurrency(appliedDiscount.discountAmount, plan.currency)}</dd>
+            </div>
+          ) : null}
           {billing.gstApplies ? (
             <div>
               <dt>GST</dt>

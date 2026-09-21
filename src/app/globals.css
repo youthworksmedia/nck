@@ -8762,6 +8762,19 @@ button {
   justify-content: flex-end;
 }
 
+.admin-discount-fields {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-discount-toggle {
+  align-self: end;
+  min-height: 2.75rem;
+}
+
+.admin-discount-actions {
+  gap: 0.65rem;
+}
+
 .account-recurring-control {
   display: grid;
   gap: 0.45rem;
@@ -8898,6 +8911,10 @@ button {
   }
 
   .admin-product-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-discount-fields {
     grid-template-columns: 1fr;
   }
 
@@ -9198,6 +9215,29 @@ button {
 .checkout-summary-price strong {
   font-size: 2rem;
   line-height: 1;
+}
+
+.checkout-discount-box {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 1rem;
+}
+
+.checkout-discount-box label {
+  display: grid;
+  gap: 0.45rem;
+  color: var(--accent-strong);
+  font-weight: 800;
+}
+
+.checkout-discount-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+}
+
+.checkout-discount-row .button {
+  min-height: 2.75rem;
 }
 
 .checkout-tax-summary {

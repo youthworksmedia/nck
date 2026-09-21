@@ -1,6 +1,7 @@
 import { cache } from "react";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { normalizeDiscountRow } from "@/lib/discounts";
 import { parseLessonResourcePayload } from "@/lib/lesson-resource-files";
 import { getStoredResourceFileSizes } from "@/lib/resource-assets";
 import {
@@ -17,6 +18,7 @@ import { withTiming } from "@/lib/timing";
 import { formatShortDate } from "@/lib/time";
 import type {
   AccountHolderSummary,
+  AdminDiscountCode,
   CurriculumTermNote,
   PurchaseOrderSummary,
   Resource,
@@ -220,6 +222,46 @@ export const getAdminProducts = cache(async function getAdminProducts(): Promise
   return defaultPlans.map((plan) => productMap.get(plan.id) ?? plan);
 });
 
+export const getAdminDiscountCodes = cache(async function getAdminDiscountCodes(): Promise<AdminDiscountCode[]> {
+  const adminSupabase = createSupabaseAdminClient();
+
+  if (!adminSupabase) {
+    return [];
+  }
+
+  const [{ data, error }, { data: redemptions }] = await Promise.all([
+    adminSupabase
+      .from("discount_codes")
+      .select("*")
+      .order("created_at", { ascending: false }),
+    adminSupabase
+      .from("discount_redemptions")
+      .select("discount_code_id")
+  ]);
+
+  if (error) {
+    return [];
+  }
+
+  const redemptionCounts = new Map<string, number>();
+
+  for (const redemption of redemptions ?? []) {
+    redemptionCounts.set(
+      redemption.discount_code_id,
+      (redemptionCounts.get(redemption.discount_code_id) ?? 0) + 1
+    );
+  }
+
+  return (data ?? []).map((row) => {
+    const discount = normalizeDiscountRow(row as Record<string, unknown>);
+
+    return {
+      ...discount,
+      redemptionCount: redemptionCounts.get(discount.id) ?? 0
+    };
+  });
+});
+
 export const getAdminOverviewMetrics = cache(async function getAdminOverviewMetrics(
   yearCycle: string,
   term: string
@@ -393,7 +435,7 @@ export const getPurchaseOrders = cache(async function getPurchaseOrders(): Promi
   const { data, error } = await adminSupabase
     .from("purchase_orders")
     .select(
-      "id, order_number, organization_id, account_holder_name, account_holder_email, church_name, plan_tier, amount, currency, payment_status, payment_provider, card_brand, card_last4, billing_address_line1, billing_suburb, billing_state, billing_postcode, billing_country, billing_phone, created_at"
+      "id, order_number, organization_id, account_holder_name, account_holder_email, church_name, plan_tier, amount, original_amount, discount_code, discount_amount, currency, payment_status, payment_provider, card_brand, card_last4, billing_address_line1, billing_suburb, billing_state, billing_postcode, billing_country, billing_phone, created_at"
     )
     .order("created_at", { ascending: false });
 
@@ -409,7 +451,10 @@ export const getPurchaseOrders = cache(async function getPurchaseOrders(): Promi
     accountHolderEmail: order.account_holder_email,
     churchName: order.church_name,
     planTier: order.plan_tier,
-    amount: order.amount,
+    amount: Number(order.amount ?? 0),
+    originalAmount: order.original_amount === null || order.original_amount === undefined ? null : Number(order.original_amount),
+    discountCode: order.discount_code ?? null,
+    discountAmount: Number(order.discount_amount ?? 0),
     currency: order.currency,
     paymentStatus: order.payment_status,
     paymentProvider: order.payment_provider,

@@ -8,6 +8,7 @@ import { FileText, Gamepad2, Plus } from "lucide-react";
 import { AdminConsoleShell } from "@/components/admin-console-shell";
 import {
   getAccountHolderSummaries,
+  getAdminDiscountCodes,
   getAdminOverviewMetrics,
   getAdminProducts,
   getAdminResources,
@@ -63,6 +64,9 @@ type AdminPageProps = {
 const years = curriculumYears;
 const AdminEmailSettingsForm = dynamic(() =>
   import("@/components/admin-email-settings-form").then((module) => module.AdminEmailSettingsForm)
+);
+const AdminDiscountList = dynamic(() =>
+  import("@/components/admin-discount-list").then((module) => module.AdminDiscountList)
 );
 const AdminAccountActions = dynamic(() =>
   import("@/components/admin-account-actions").then((module) => module.AdminAccountActions)
@@ -183,7 +187,12 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const activeYear = getYear(params.year);
   const activeTerm = getTerm(params.term);
   const activeTab = params.tab === "add" ? "add" : "library";
-  const activeAccountsTab = params.section === "admins" || params.tab === "admins" ? "admins" : "account-holders";
+  const activeAccountsTab =
+    params.section === "admins" || params.tab === "admins"
+      ? "admins"
+      : params.tab === "discounts"
+        ? "discounts"
+        : "account-holders";
   let overviewMetrics: Awaited<ReturnType<typeof getAdminOverviewMetrics>> | null = null;
   let resources: Awaited<ReturnType<typeof getAdminResources>> = [];
   let products: Awaited<ReturnType<typeof getAdminProducts>> = [];
@@ -195,6 +204,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   let files: Awaited<ReturnType<typeof listStoredResourceFiles>> = [];
   let unitOverviews: Awaited<ReturnType<typeof getAdminUnitOverviews>> = [];
   let accountHolders: Awaited<ReturnType<typeof getAccountHolderSummaries>> = [];
+  let discounts: Awaited<ReturnType<typeof getAdminDiscountCodes>> = [];
   let orders: Awaited<ReturnType<typeof getPurchaseOrders>> = [];
   let admins: Awaited<ReturnType<typeof getSuperAdminEmails>> = [];
   let performanceLogs: Awaited<ReturnType<typeof getAdminPerformanceLogs>> = [];
@@ -227,6 +237,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   } else if (activeSection === "accounts") {
     if (activeAccountsTab === "admins") {
       admins = await getSuperAdminEmails();
+    } else if (activeAccountsTab === "discounts") {
+      [discounts, products] = await Promise.all([getAdminDiscountCodes(), getAdminProducts()]);
     } else {
       [accountHolders, products] = await Promise.all([getAccountHolderSummaries(), getAdminProducts()]);
     }
@@ -481,6 +493,12 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 >
                   Admin
                 </Link>
+                <Link
+                  href={adminHref({ section: "accounts", tab: "discounts" })}
+                  className={`admin-top-tab ${activeAccountsTab === "discounts" ? "admin-top-tab-active" : ""}`}
+                >
+                  Discounts
+                </Link>
               </div>
 
               {activeAccountsTab === "account-holders" ? (
@@ -555,7 +573,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     )}
                   </div>
                 </>
-              ) : (
+              ) : activeAccountsTab === "admins" ? (
                 <>
                   <SuperAdminForm />
                   <table className="list-table">
@@ -592,6 +610,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     </tbody>
                   </table>
                 </>
+              ) : (
+                <AdminDiscountList discounts={discounts} products={products} />
               )}
             </section>
           ) : null}
@@ -632,6 +652,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                           <p><strong>Church:</strong> {order.churchName}</p>
                           <p><strong>Payment:</strong> {order.cardBrand} ending in {order.cardLast4}</p>
                           <p><strong>Provider:</strong> {order.paymentProvider}</p>
+                          {order.discountCode ? (
+                            <p>
+                              <strong>Discount:</strong> {order.discountCode} saved{" "}
+                              {formatCurrency(order.discountAmount, order.currency)}
+                              {order.originalAmount ? ` from ${formatCurrency(order.originalAmount, order.currency)}` : ""}
+                            </p>
+                          ) : null}
                           <p className="order-detail-address">
                             <strong>Billing address:</strong> {order.billingAddressLine1}, {order.billingSuburb}, {order.billingState} {order.billingPostcode}, {order.billingCountry}
                           </p>

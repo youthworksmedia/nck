@@ -1,5 +1,6 @@
 import type { PlanTier } from "@/lib/plans";
 import type { CurriculumSection, CurriculumYear } from "@/lib/curriculum";
+import type { DiscountCode } from "@/lib/discounts";
 
 export type LessonResourceType = "pdf" | "game" | "music" | "video";
 
@@ -293,6 +294,9 @@ export type PurchaseOrderSummary = {
   churchName: string;
   planTier: PlanTier;
   amount: number;
+  originalAmount: number | null;
+  discountCode: string | null;
+  discountAmount: number;
   currency: string;
   paymentStatus: "paid" | "pending" | "failed" | "refund_requested" | "refunded";
   paymentProvider: string;
@@ -305,6 +309,10 @@ export type PurchaseOrderSummary = {
   billingCountry: string;
   billingPhone: string;
   createdAt: string;
+};
+
+export type AdminDiscountCode = DiscountCode & {
+  redemptionCount: number;
 };
 
 export type CheckoutProfile = {

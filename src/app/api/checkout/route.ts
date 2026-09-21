@@ -9,6 +9,7 @@ import {
   isAcceptedFakeCard
 } from "@/lib/checkout";
 import { getBillingBreakdown } from "@/lib/billing";
+import { validateDiscountCode, type DiscountValidationResult } from "@/lib/discounts";
 import { sendPaymentSuccessEmail, sendRenewalConfirmationEmail, sendWelcomeEmail } from "@/lib/email-delivery";
 import { getGeneralEmailSettings } from "@/lib/email-settings";
 import { isStrongPassword, passwordRequirementText } from "@/lib/password";
@@ -36,7 +37,8 @@ const checkoutSchema = z.object({
   nameOnCard: z.string().trim().min(2, "Add the name on the card."),
   expiryMonth: z.string().trim().min(1, "Add the expiry month."),
   expiryYear: z.string().trim().min(2, "Add the expiry year."),
-  cvc: z.string().trim().min(3, "Add the security code.")
+  cvc: z.string().trim().min(3, "Add the security code."),
+  discountCode: z.string().trim().optional().default("")
 });
 
 async function findOwnerMembership(
@@ -335,7 +337,21 @@ export async function POST(request: Request) {
     const orderNumber = createOrderNumber(plan.id);
     const cardBrand = detectFakeCardBrand(input.cardNumber);
     const cardLast4 = getCardLast4(input.cardNumber);
-    const billing = getBillingBreakdown(plan.annualPrice, input.country);
+    const originalBilling = getBillingBreakdown(plan.annualPrice, input.country);
+    let discountResult: DiscountValidationResult | null = null;
+
+    if (input.discountCode.trim()) {
+      discountResult = await validateDiscountCode(adminSupabase, {
+        code: input.discountCode,
+        plan,
+        country: input.country,
+        organizationId: ownerMembership?.organization_id ?? null
+      });
+
+      if (!discountResult.ok) {
+        return NextResponse.json({ message: discountResult.message }, { status: 400 });
+      }
+    }
 
     let createdUserId: string | null = null;
     let createdOrganizationId: string | null = null;
@@ -477,6 +493,11 @@ export async function POST(request: Request) {
           phone: input.phone
         };
     const accountEmail = accountDetails.email.toLowerCase();
+    let billing = originalBilling;
+
+    if (discountResult?.ok) {
+      billing = discountResult.billing;
+    }
 
     if (isSignedInOwner) {
       await updateOrganizationBillingFields(adminSupabase, organizationId, input);
@@ -496,6 +517,10 @@ export async function POST(request: Request) {
         church_name: accountDetails.churchName,
         plan_tier: plan.id,
         amount: billing.total,
+        original_amount: discountResult?.ok ? originalBilling.total : null,
+        discount_code_id: discountResult?.ok ? discountResult.discount.id : null,
+        discount_code: discountResult?.ok ? discountResult.discount.code : null,
+        discount_amount: discountResult?.ok ? discountResult.discountAmount : 0,
         currency: plan.currency.toLowerCase(),
         payment_status: "paid",
         payment_provider: "fake",
@@ -519,6 +544,18 @@ export async function POST(request: Request) {
     }
 
     orderId = order.id;
+
+    if (discountResult?.ok) {
+      const { error: redemptionError } = await adminSupabase.from("discount_redemptions").insert({
+        discount_code_id: discountResult.discount.id,
+        organization_id: organizationId,
+        purchase_order_id: order.id
+      });
+
+      if (redemptionError) {
+        throw new Error(redemptionError.message);
+      }
+    }
 
     await upsertSubscription(adminSupabase, {
       organization_id: organizationId,

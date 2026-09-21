@@ -862,7 +862,7 @@ export async function getAccountPurchaseOrders(): Promise<PurchaseOrderSummary[]
   const { data, error } = await adminSupabase
     .from("purchase_orders")
     .select(
-      "id, order_number, organization_id, account_holder_name, account_holder_email, church_name, plan_tier, amount, currency, payment_status, payment_provider, card_brand, card_last4, billing_address_line1, billing_suburb, billing_state, billing_postcode, billing_country, billing_phone, created_at"
+      "id, order_number, organization_id, account_holder_name, account_holder_email, church_name, plan_tier, amount, original_amount, discount_code, discount_amount, currency, payment_status, payment_provider, card_brand, card_last4, billing_address_line1, billing_suburb, billing_state, billing_postcode, billing_country, billing_phone, created_at"
     )
     .eq("organization_id", memberRow.organization_id)
     .order("created_at", { ascending: false });
@@ -880,7 +880,10 @@ export async function getAccountPurchaseOrders(): Promise<PurchaseOrderSummary[]
       accountHolderEmail: order.account_holder_email,
       churchName: order.church_name,
       planTier: order.plan_tier,
-      amount: order.amount,
+      amount: Number(order.amount ?? 0),
+      originalAmount: order.original_amount === null || order.original_amount === undefined ? null : Number(order.original_amount),
+      discountCode: order.discount_code ?? null,
+      discountAmount: Number(order.discount_amount ?? 0),
       currency: order.currency,
       paymentStatus: order.payment_status,
       paymentProvider: order.payment_provider,
