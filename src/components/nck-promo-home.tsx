@@ -180,10 +180,11 @@ export function NckPromoHome({ plans, isLoggedIn = false }: { plans: Plan[]; isL
           </div>
           <Image
             className="promo-platform-panel-image"
-            src="/nck-promo/platform-panel-preview.png"
+            src="/nck-promo/platform-panel-preview.png?v=fe9e8cf4"
             alt="New Creation Kids platform lesson page showing resources"
             width={636}
             height={492}
+            unoptimized
           />
         </div>
       </section>
