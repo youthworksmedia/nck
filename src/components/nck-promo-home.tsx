@@ -138,12 +138,12 @@ export function NckPromoHome({ plans, isLoggedIn = false }: { plans: Plan[]; isL
               <p>Every week engages children with the Bible text, helping them see Jesus and the one redemptive story.</p>
             </article>
             <article className="promo-feature-card">
-              <span className="promo-icon-box promo-blue-bg"><HandHeart size={20} /></span>
+              <span className="promo-icon-box promo-orange-bg"><HandHeart size={20} /></span>
               <h3>Family discipleship</h3>
               <p>Family reading guides and take-home resources are included to partner with families.</p>
             </article>
             <article className="promo-feature-card">
-              <span className="promo-icon-box promo-orange-bg"><GraduationCap size={20} /></span>
+              <span className="promo-icon-box promo-blue-bg"><GraduationCap size={20} /></span>
               <h3>Training for leaders</h3>
               <p>Resources, guides, and training content help leaders grow as they teach and lead.</p>
             </article>
