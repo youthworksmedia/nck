@@ -123,16 +123,16 @@ export const defaultEmailTemplates: EmailTemplate[] = [
       "Sent after a membership renewal is recorded. Available codes: {{accountHolderName}}, {{churchName}}, {{planName}}, {{renewalDate}}, {{accountUrl}}, {{siteUrl}}, {{supportEmail}}.",
     subject: "Your New Creation Kids membership has renewed",
     body:
-      "Hi {{accountHolderName}},\n\nThanks for renewing New Creation Kids for {{churchName}}. Your {{planName}} membership is active through {{renewalDate}}.\n\nYour team can continue using the curriculum library here:\n{{accountUrl}}\n\nBlessings,\nNew Creation Kids"
+      "Hi {{accountHolderName}},\n\nThanks for renewing New Creation Kids for {{churchName}}. Your {{planName}} membership is active through {{renewalDate}}.\n\nYour team can continue enjoying the subscription.\n\nBlessings,\nNew Creation Kids"
   },
   {
     key: "payment_success",
     label: "Payment success",
     description:
-      "Sent after a subscription payment succeeds. Available codes: {{accountHolderName}}, {{churchName}}, {{planName}}, {{amount}}, {{renewalDate}}, {{invoiceUrl}}, {{accountUrl}}, {{siteUrl}}, {{supportEmail}}.",
+      "Sent after a subscription payment succeeds. Available codes: {{accountHolderName}}, {{churchName}}, {{planName}}, {{amount}}, {{renewalDate}}, {{accountSubscriptionUrl}}, {{accountUrl}}, {{siteUrl}}, {{supportEmail}}.",
     subject: "Your New Creation Kids payment was successful",
     body:
-      "Hi {{accountHolderName}},\n\nYour {{amount}} payment for the {{churchName}} New Creation Kids {{planName}} membership was successful.\n\nYour membership is active through {{renewalDate}}.\n\n[Click here for downloading invoice (PDF)]({{invoiceUrl}})\n\nYou can also review your account here:\n{{accountUrl}}\n\nBlessings,\nNew Creation Kids"
+      "Hi {{accountHolderName}},\n\nYour {{amount}} payment for the {{churchName}} New Creation Kids {{planName}} membership was successful.\n\nYour membership is active through {{renewalDate}}.\n\nYour tax invoice is attached to this email. You can also find it under {{accountSubscriptionUrl}}.\n\nBlessings,\nNew Creation Kids"
   },
   {
     key: "payment_failed",

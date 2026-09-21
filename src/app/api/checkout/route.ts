@@ -12,6 +12,7 @@ import { getBillingBreakdown } from "@/lib/billing";
 import { validateDiscountCode, type DiscountValidationResult } from "@/lib/discounts";
 import { sendPaymentSuccessEmail, sendRenewalConfirmationEmail, sendWelcomeEmail } from "@/lib/email-delivery";
 import { getGeneralEmailSettings } from "@/lib/email-settings";
+import { createInvoiceEmailAttachment } from "@/lib/invoice-email-attachment";
 import { isStrongPassword, passwordRequirementText } from "@/lib/password";
 import { getPlanByTierFromProducts } from "@/lib/plans";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -40,6 +41,9 @@ const checkoutSchema = z.object({
   cvc: z.string().trim().min(3, "Add the security code."),
   discountCode: z.string().trim().optional().default("")
 });
+
+const purchaseOrderInvoiceSelect =
+  "id, order_number, organization_id, account_holder_name, account_holder_email, church_name, plan_tier, amount, original_amount, discount_code, discount_amount, currency, payment_status, payment_provider, card_brand, card_last4, billing_address_line1, billing_suburb, billing_state, billing_postcode, billing_country, billing_phone, created_at";
 
 async function findOwnerMembership(
   adminSupabase: NonNullable<ReturnType<typeof createSupabaseAdminClient>>,
@@ -533,7 +537,7 @@ export async function POST(request: Request) {
         billing_country: input.country,
         billing_phone: accountDetails.phone
       })
-      .select("id")
+      .select(purchaseOrderInvoiceSelect)
       .single();
 
     if (orderError || !order) {
@@ -570,6 +574,7 @@ export async function POST(request: Request) {
     });
 
     const generalSettings = await getGeneralEmailSettings();
+    const invoiceAttachment = await createInvoiceEmailAttachment(order);
     const paymentEmailInput = {
       to: accountEmail,
       accountHolderName: accountDetails.accountHolderName,
@@ -577,7 +582,7 @@ export async function POST(request: Request) {
       planName: plan.name,
       renewalDate: formatLongDateWithOrdinal(renewalDates.renewalDate),
       amount: `${formatCurrency(billing.total, plan.currency)}${billing.gstApplies ? " including GST" : ""}`,
-      invoiceUrl: `${generalSettings.siteUrl.replace(/\/+$/, "")}/api/account/invoices/${order.id}`
+      invoiceAttachment
     };
     const [welcomeEmail, paymentEmail] = await Promise.all([
       isSignedInOwner

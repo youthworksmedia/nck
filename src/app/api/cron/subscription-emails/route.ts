@@ -11,6 +11,7 @@ import { getBillingBreakdown } from "@/lib/billing";
 import { getGeneralEmailSettings } from "@/lib/email-settings";
 import { serverEnv } from "@/lib/env";
 import { createOrderNumber } from "@/lib/checkout";
+import { createInvoiceEmailAttachment } from "@/lib/invoice-email-attachment";
 import { getPlanByTier, getPlanByTierFromProducts, getPlanPrice } from "@/lib/plans";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { addYears, formatISO, formatLongDateWithOrdinal, getDaysUntil } from "@/lib/time";
@@ -45,6 +46,9 @@ type EventType =
   | "renewal_confirmation"
   | "cancellation_confirmation"
   | "access_expiry";
+
+const purchaseOrderInvoiceSelect =
+  "id, order_number, organization_id, account_holder_name, account_holder_email, church_name, plan_tier, amount, original_amount, discount_code, discount_amount, currency, payment_status, payment_provider, card_brand, card_last4, billing_address_line1, billing_suburb, billing_state, billing_postcode, billing_country, billing_phone, created_at";
 
 function isAuthorized(request: Request) {
   if (!serverEnv.subscriptionCronSecret) {
@@ -214,7 +218,7 @@ export async function GET(request: Request) {
             billing_country: billingCountry,
             billing_phone: subscription.organizations?.billing_phone ?? ""
           })
-          .select("id")
+          .select(purchaseOrderInvoiceSelect)
           .single();
 
         if (orderError || !order) {
@@ -238,6 +242,7 @@ export async function GET(request: Request) {
           continue;
         }
 
+        const invoiceAttachment = await createInvoiceEmailAttachment(order);
         const updatedCommon = {
           ...common,
           planName: plan.name,
@@ -245,7 +250,7 @@ export async function GET(request: Request) {
           accessEndsDate: formatLongDateWithOrdinal(renewalDate),
           daysUntilRenewal: 365,
           amount: `${formatCurrency(billing.total, plan.currency)}${billing.gstApplies ? " including GST" : ""}`,
-          invoiceUrl: `${generalSettings.siteUrl.replace(/\/+$/, "")}/api/account/invoices/${order.id}`
+          invoiceAttachment
         };
         const [renewalEmail, paymentEmail] = await Promise.all([
           sendRenewalConfirmationEmail(updatedCommon),

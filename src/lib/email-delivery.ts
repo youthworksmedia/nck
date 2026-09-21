@@ -5,6 +5,7 @@ import {
   getEmailTemplates,
   getGeneralEmailSettings
 } from "@/lib/email-settings";
+import type { EmailAttachment } from "@/lib/invoice-email-attachment";
 
 type WelcomeEmailInput = {
   to: string;
@@ -25,7 +26,7 @@ export type LifecycleEmailInput = {
   churchName: string;
   planName: string;
   amount?: string;
-  invoiceUrl?: string;
+  invoiceAttachment?: EmailAttachment;
   renewalDate?: string;
   accessEndsDate?: string;
   daysUntilRenewal?: number;
@@ -145,8 +146,9 @@ function textToEmailHtml(text: string, siteUrl?: string) {
 </html>`;
 }
 
-function addPaymentInvoiceLink(body: string) {
-  const invoiceLine = "[Click here for downloading invoice (PDF)]({{invoiceUrl}})";
+function addPaymentInvoiceNote(body: string) {
+  const invoiceLine =
+    "Your tax invoice is attached to this email. You can also find it under {{accountSubscriptionUrl}}.";
   const signoffPattern = /\n\nBlessings,/i;
   const signoffMatch = body.match(signoffPattern);
 
@@ -155,6 +157,29 @@ function addPaymentInvoiceLink(body: string) {
   }
 
   return `${body.slice(0, signoffMatch.index).trim()}\n\n${invoiceLine}${body.slice(signoffMatch.index)}`;
+}
+
+function normalizeRenewalConfirmationBody(body: string) {
+  return body
+    .replace(
+      /Your team can continue using the curriculum library here:\s*\n\{\{accountUrl\}\}/i,
+      "Your team can continue enjoying the subscription."
+    )
+    .replace(
+      /Your team can continue using the curriculum library here:\s*\n\S+/i,
+      "Your team can continue enjoying the subscription."
+    );
+}
+
+function normalizePaymentSuccessBody(body: string) {
+  return body
+    .replace(
+      /Your membership is active through \{\{renewalDate\}\}, and your invoice is available from your account:\s*\n\{\{accountUrl\}\}/i,
+      "Your membership is active through {{renewalDate}}."
+    )
+    .replace(/\n\n\[Click here for downloading invoice \(PDF\)\]\(\{\{invoiceUrl\}\}\)/i, "")
+    .replace(/\n\nYou can also review your account here:\s*\n\{\{accountUrl\}\}/i, "")
+    .replace(/\n+\{\{invoiceUrl\}\}/g, "");
 }
 
 export async function sendWelcomeEmail(input: WelcomeEmailInput): Promise<SendEmailResult> {
@@ -276,18 +301,19 @@ async function sendLifecycleEmail(templateKey: EmailTemplateKey, input: Lifecycl
     values: {
       accountHolderName: input.accountHolderName,
       accountUrl: `${generalSettings.siteUrl}/account`,
+      accountSubscriptionUrl: `${generalSettings.siteUrl.replace(/\/+$/, "")}/account/subscription`,
       accessEndsDate: input.accessEndsDate ?? input.renewalDate ?? "",
       amount: input.amount ?? "",
       churchName: input.churchName,
       daysUntilRenewal: String(input.daysUntilRenewal ?? ""),
-      invoiceUrl: input.invoiceUrl ?? "",
       loginUrl: `${generalSettings.siteUrl}/login`,
       planName: input.planName,
       renewalDate: input.renewalDate ?? "",
       siteUrl: generalSettings.siteUrl,
       supportEmail: generalSettings.supportEmail,
       surveyUrl: generalSettings.cancellationSurveyUrl || `${generalSettings.siteUrl}/account`
-    }
+    },
+    attachments: input.invoiceAttachment ? [input.invoiceAttachment] : undefined
   });
 }
 
@@ -297,6 +323,7 @@ async function sendActionEmail(input: {
   from: string;
   siteUrl: string;
   values: Record<string, string>;
+  attachments?: EmailAttachment[];
 }): Promise<SendEmailResult> {
   const templates = await getEmailTemplates();
   const template = templates.find((item) => item.key === input.templateKey);
@@ -306,12 +333,18 @@ async function sendActionEmail(input: {
   }
 
   const subject = renderEmailTemplate(template.subject, input.values);
+  const templateBody =
+    input.templateKey === "renewal_confirmation"
+      ? normalizeRenewalConfirmationBody(template.body)
+      : input.templateKey === "payment_success"
+        ? normalizePaymentSuccessBody(template.body)
+      : template.body;
   const body =
     input.templateKey === "payment_success" &&
-    input.values.invoiceUrl &&
-    !template.body.includes("{{invoiceUrl}}")
-      ? addPaymentInvoiceLink(template.body)
-      : template.body;
+    Boolean(input.attachments?.length) &&
+    !/attached/i.test(templateBody)
+      ? addPaymentInvoiceNote(templateBody)
+      : templateBody;
   const text = renderEmailTemplate(body, input.values);
 
   return sendEmail({
@@ -319,11 +352,19 @@ async function sendActionEmail(input: {
     subject,
     text,
     from: input.from,
-    siteUrl: input.siteUrl
+    siteUrl: input.siteUrl,
+    attachments: input.attachments
   });
 }
 
-async function sendEmail(input: { to: string; subject: string; text: string; from: string; siteUrl?: string }): Promise<SendEmailResult> {
+async function sendEmail(input: {
+  to: string;
+  subject: string;
+  text: string;
+  from: string;
+  siteUrl?: string;
+  attachments?: EmailAttachment[];
+}): Promise<SendEmailResult> {
   if (!serverEnv.resendApiKey || !input.from) {
     return {
       ok: false,
@@ -343,7 +384,8 @@ async function sendEmail(input: { to: string; subject: string; text: string; fro
       to: input.to,
       subject: input.subject,
       html: textToEmailHtml(input.text, input.siteUrl),
-      text: input.text
+      text: input.text,
+      ...(input.attachments?.length ? { attachments: input.attachments } : {})
     })
   });
 
