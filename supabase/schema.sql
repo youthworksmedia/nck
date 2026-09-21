@@ -225,6 +225,12 @@ create table if not exists nck.discount_redemptions (
 create index if not exists discount_redemptions_code_org_idx
   on nck.discount_redemptions (discount_code_id, organization_id);
 
+alter table nck.discount_codes enable row level security;
+alter table nck.discount_redemptions enable row level security;
+
+revoke all on table nck.discount_codes from anon, authenticated;
+revoke all on table nck.discount_redemptions from anon, authenticated;
+
 do $$
 begin
   if not exists (
