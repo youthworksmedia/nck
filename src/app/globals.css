@@ -11104,6 +11104,10 @@ button {
   line-height: 1.65;
 }
 
+.promo-cycle-caption {
+  max-width: 830px;
+}
+
 .promo-scope-link,
 .promo-sample-body a {
   display: inline-flex;
@@ -11230,7 +11234,8 @@ button {
   text-transform: uppercase;
 }
 
-.promo-cycle-note {
+.promo-cycle-note,
+.promo-scope-callout {
   display: flex;
   gap: 10px;
   align-items: center;
@@ -11244,7 +11249,16 @@ button {
   text-align: left;
 }
 
-.promo-cycle-note span {
+.promo-scope-callout {
+  justify-content: center;
+}
+
+.promo-scope-callout .promo-scope-link {
+  margin-top: 0;
+}
+
+.promo-cycle-note span,
+.promo-scope-callout span {
   flex: 0 0 11px;
   width: 11px;
   height: 11px;
@@ -11844,6 +11858,7 @@ button {
   }
 
   .promo-cycle-note,
+  .promo-scope-callout,
   .promo-sample-cta,
   .promo-action-row {
     display: grid;

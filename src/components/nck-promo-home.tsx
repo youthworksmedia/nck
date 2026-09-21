@@ -192,8 +192,8 @@ export function NckPromoHome({ plans, isLoggedIn = false }: { plans: Plan[]; isL
         <div className="promo-container promo-center">
           <p className="promo-eyebrow promo-centered">The teaching cycle</p>
           <h2>The whole Bible story,<br />start to finish.</h2>
-          <p className="promo-section-caption">
-            New Creation Kids moves children through Scripture&apos;s one big story on a repeating cycle.
+          <p className="promo-section-caption promo-cycle-caption">
+            New Creation Kids moves children through Scripture&apos;s one big story every three years. Each year we spend 6 months in the Old Testament and 6 months in the New Testament. After three years we&apos;ll go back to the start so kids will read the whole story several times through your children&apos;s ministry.
           </p>
           <div className="promo-cycle-grid">
             {cycleCards.map(([number, title, reference, text, colour]) => (
@@ -205,13 +205,12 @@ export function NckPromoHome({ plans, isLoggedIn = false }: { plans: Plan[]; isL
               </article>
             ))}
           </div>
-          <div className="promo-cycle-note">
+          <div className="promo-scope-callout">
             <span aria-hidden="true" />
-            The cycle repeats every three years, so a child meets the whole story several times before Year 6.
+            <a className="promo-scope-link" href="/nck-promo/NCK-Scope-Sequence.pdf" target="_blank" rel="noreferrer">
+              Download Scope and Sequence
+            </a>
           </div>
-          <a className="promo-scope-link" href="/nck-promo/NCK-Scope-Sequence.pdf" target="_blank" rel="noreferrer">
-            Download Scope and Sequence
-          </a>
         </div>
       </section>
 
