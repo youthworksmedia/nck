@@ -1,6 +1,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 import {
+  BadgePercent,
   BookOpenText,
   CreditCard,
   FolderOpen,
@@ -25,6 +26,7 @@ type AdminSection =
   | "leader-resources"
   | "faqs"
   | "accounts"
+  | "discounts"
   | "transactions"
   | "media"
   | "performance"
@@ -32,7 +34,7 @@ type AdminSection =
 
 type Props = {
   activeSection: AdminSection;
-  activeAccountsTab?: "account-holders" | "admins" | "discounts";
+  activeAccountsTab?: "account-holders" | "admins";
   activeYear?: string;
   children: React.ReactNode;
   userEmail?: string | null;
@@ -188,12 +190,6 @@ export function AdminConsoleShell({
                 Account holders
               </Link>
               <Link
-                href={adminHref({ section: "accounts", tab: "discounts" })}
-                className={activeSection === "accounts" && activeAccountsTab === "discounts" ? "is-active" : ""}
-              >
-                Discounts
-              </Link>
-              <Link
                 href={adminHref({ section: "accounts", tab: "admins" })}
                 className={activeSection === "accounts" && activeAccountsTab === "admins" ? "is-active" : ""}
               >
@@ -201,6 +197,13 @@ export function AdminConsoleShell({
               </Link>
             </div>
           </div>
+          <Link
+            href={adminHref({ section: "discounts" })}
+            className={`admin-console-link ${activeSection === "discounts" ? "admin-console-link-active" : ""}`}
+          >
+            <BadgePercent size={18} />
+            <span>Discounts</span>
+          </Link>
           <Link
             href={adminHref({ section: "transactions" })}
             className={`admin-console-link ${activeSection === "transactions" ? "admin-console-link-active" : ""}`}

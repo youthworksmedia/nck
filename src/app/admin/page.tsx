@@ -124,6 +124,7 @@ function getSection(value?: string) {
     value === "leader-resources" ||
     value === "faqs" ||
     value === "accounts" ||
+    value === "discounts" ||
     value === "transactions" ||
     value === "media" ||
     value === "performance" ||
@@ -190,9 +191,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const activeAccountsTab =
     params.section === "admins" || params.tab === "admins"
       ? "admins"
-      : params.tab === "discounts"
-        ? "discounts"
-        : "account-holders";
+      : "account-holders";
   let overviewMetrics: Awaited<ReturnType<typeof getAdminOverviewMetrics>> | null = null;
   let resources: Awaited<ReturnType<typeof getAdminResources>> = [];
   let products: Awaited<ReturnType<typeof getAdminProducts>> = [];
@@ -237,11 +236,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   } else if (activeSection === "accounts") {
     if (activeAccountsTab === "admins") {
       admins = await getSuperAdminEmails();
-    } else if (activeAccountsTab === "discounts") {
-      [discounts, products] = await Promise.all([getAdminDiscountCodes(), getAdminProducts()]);
     } else {
       [accountHolders, products] = await Promise.all([getAccountHolderSummaries(), getAdminProducts()]);
     }
+  } else if (activeSection === "discounts") {
+    [discounts, products] = await Promise.all([getAdminDiscountCodes(), getAdminProducts()]);
   } else if (activeSection === "transactions") {
     [orders, products] = await Promise.all([getPurchaseOrders(), getAdminProducts()]);
   } else if (activeSection === "media") {
@@ -498,12 +497,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 >
                   Admin
                 </Link>
-                <Link
-                  href={adminHref({ section: "accounts", tab: "discounts" })}
-                  className={`admin-top-tab ${activeAccountsTab === "discounts" ? "admin-top-tab-active" : ""}`}
-                >
-                  Discounts
-                </Link>
               </div>
 
               {activeAccountsTab === "account-holders" ? (
@@ -615,9 +608,19 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     </tbody>
                   </table>
                 </>
-              ) : (
-                <AdminDiscountList discounts={discounts} products={products} />
-              )}
+              ) : null}
+            </section>
+          ) : null}
+
+          {activeSection === "discounts" ? (
+            <section className="panel admin-console-card">
+              <div className="section-head">
+                <div>
+                  <h1>Discounts</h1>
+                  <p>Create and manage checkout discount codes for selected products.</p>
+                </div>
+              </div>
+              <AdminDiscountList discounts={discounts} products={products} />
             </section>
           ) : null}
 
