@@ -272,7 +272,12 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     unitOverviews[0];
 
   return (
-    <AdminConsoleShell activeSection={activeSection} activeYear={activeYear} userEmail={user.email}>
+    <AdminConsoleShell
+      activeSection={activeSection}
+      activeAccountsTab={activeAccountsTab}
+      activeYear={activeYear}
+      userEmail={user.email}
+    >
           {activeSection === "overview" ? (
             <>
               <div className="section-head app-page-head admin-console-head">

@@ -32,6 +32,7 @@ type AdminSection =
 
 type Props = {
   activeSection: AdminSection;
+  activeAccountsTab?: "account-holders" | "admins" | "discounts";
   activeYear?: string;
   children: React.ReactNode;
   userEmail?: string | null;
@@ -54,7 +55,13 @@ function adminHref(params: {
   return (query ? `/admin?${query}` : "/admin") as Route;
 }
 
-export function AdminConsoleShell({ activeSection, activeYear, children, userEmail }: Props) {
+export function AdminConsoleShell({
+  activeSection,
+  activeAccountsTab = "account-holders",
+  activeYear,
+  children,
+  userEmail
+}: Props) {
   const selectedYear = activeYear ?? curriculumYears[0];
 
   return (
@@ -165,13 +172,35 @@ export function AdminConsoleShell({ activeSection, activeYear, children, userEma
             <HelpCircle size={18} />
             <span>Help &amp; FAQs</span>
           </Link>
-          <Link
-            href={adminHref({ section: "accounts" })}
-            className={`admin-console-link ${activeSection === "accounts" ? "admin-console-link-active" : ""}`}
-          >
-            <Users size={18} />
-            <span>Accounts</span>
-          </Link>
+          <div className="admin-console-nav-group">
+            <Link
+              href={adminHref({ section: "accounts" })}
+              className={`admin-console-link ${activeSection === "accounts" ? "admin-console-link-active" : ""}`}
+            >
+              <Users size={18} />
+              <span>Accounts</span>
+            </Link>
+            <div className="admin-console-year-links" aria-label="Account sections">
+              <Link
+                href={adminHref({ section: "accounts" })}
+                className={activeSection === "accounts" && activeAccountsTab === "account-holders" ? "is-active" : ""}
+              >
+                Account holders
+              </Link>
+              <Link
+                href={adminHref({ section: "accounts", tab: "discounts" })}
+                className={activeSection === "accounts" && activeAccountsTab === "discounts" ? "is-active" : ""}
+              >
+                Discounts
+              </Link>
+              <Link
+                href={adminHref({ section: "accounts", tab: "admins" })}
+                className={activeSection === "accounts" && activeAccountsTab === "admins" ? "is-active" : ""}
+              >
+                Admin
+              </Link>
+            </div>
+          </div>
           <Link
             href={adminHref({ section: "transactions" })}
             className={`admin-console-link ${activeSection === "transactions" ? "admin-console-link-active" : ""}`}
