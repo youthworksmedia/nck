@@ -29,7 +29,7 @@ export function DeleteAdminSubAccountButton({
         title={`Delete sub account ${email}`}
         onClick={() => {
           const confirmed = window.confirm(
-            `Delete the sub account for ${email}? They will lose access to this account immediately.`
+            `Delete the sub account for ${email}? They will lose access immediately, and their sign-in account will be removed if it is not used anywhere else.`
           );
 
           if (!confirmed) {

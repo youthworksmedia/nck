@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { isCurrentUserSuperAdmin } from "@/lib/admin-access";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { deleteTeamMemberAccount } from "@/lib/team-member-deletion";
 
 type RouteContext = {
   params: Promise<{
@@ -30,7 +31,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
 
   const { data: targetMember, error: lookupError } = await adminSupabase
     .from("organization_members")
-    .select("id, role, organization_id")
+    .select("id, user_id, role, organization_id")
     .eq("id", memberId)
     .eq("organization_id", organizationId)
     .limit(1)
@@ -51,12 +52,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     );
   }
 
-  const { error } = await adminSupabase
-    .from("organization_members")
-    .delete()
-    .eq("id", memberId)
-    .eq("organization_id", organizationId)
-    .neq("role", "owner");
+  const { error } = await deleteTeamMemberAccount(adminSupabase, targetMember);
 
   if (error) {
     return NextResponse.json({ message: error.message }, { status: 400 });

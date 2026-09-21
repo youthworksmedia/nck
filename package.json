@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "deploy:production": "bash scripts/deploy-production.sh",
     "cap:copy": "npx cap copy",
     "cap:sync": "npx cap sync android",
     "cap:sync:dev": "CAP_SERVER_URL=http://10.0.2.2:3001/weather npx cap sync android",

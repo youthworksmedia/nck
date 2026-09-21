@@ -5,6 +5,7 @@ import { getCurrentOrganizationMembership, isCurrentUserOwner } from "@/lib/port
 import { isStrongPassword, passwordRequirementText } from "@/lib/password";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { deleteTeamMemberAccount } from "@/lib/team-member-deletion";
 import { startTimer, withTiming } from "@/lib/timing";
 
 const updateSchema = z.object({
@@ -231,10 +232,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
       );
     }
 
-    const { error } = await adminSupabase
-      .from("organization_members")
-      .delete()
-      .eq("id", memberId);
+    const { error } = await deleteTeamMemberAccount(adminSupabase, targetMember);
 
     if (error) {
       return NextResponse.json({ message: error.message }, { status: 400 });

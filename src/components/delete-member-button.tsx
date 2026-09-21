@@ -33,7 +33,7 @@ export function DeleteMemberButton({
           }
 
           const confirmed = window.confirm(
-            `Remove ${email} from team access? They will lose member access immediately.`
+            `Delete ${email}? They will lose team access immediately, and their sign-in account will be removed if it is not used anywhere else.`
           );
 
           if (!confirmed) {
