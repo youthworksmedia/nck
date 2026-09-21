@@ -129,10 +129,10 @@ export const defaultEmailTemplates: EmailTemplate[] = [
     key: "payment_success",
     label: "Payment success",
     description:
-      "Sent after a subscription payment succeeds. Available codes: {{accountHolderName}}, {{churchName}}, {{planName}}, {{amount}}, {{renewalDate}}, {{accountUrl}}, {{siteUrl}}, {{supportEmail}}.",
+      "Sent after a subscription payment succeeds. Available codes: {{accountHolderName}}, {{churchName}}, {{planName}}, {{amount}}, {{renewalDate}}, {{invoiceUrl}}, {{accountUrl}}, {{siteUrl}}, {{supportEmail}}.",
     subject: "Your New Creation Kids payment was successful",
     body:
-      "Hi {{accountHolderName}},\n\nYour {{amount}} payment for the {{churchName}} New Creation Kids {{planName}} membership was successful.\n\nYour membership is active through {{renewalDate}}, and your invoice is available from your account:\n{{accountUrl}}\n\nBlessings,\nNew Creation Kids"
+      "Hi {{accountHolderName}},\n\nYour {{amount}} payment for the {{churchName}} New Creation Kids {{planName}} membership was successful.\n\nYour membership is active through {{renewalDate}}.\n\n[Click here for downloading invoice (PDF)]({{invoiceUrl}})\n\nYou can also review your account here:\n{{accountUrl}}\n\nBlessings,\nNew Creation Kids"
   },
   {
     key: "payment_failed",

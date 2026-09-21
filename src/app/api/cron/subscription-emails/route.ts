@@ -191,29 +191,33 @@ export async function GET(request: Request) {
           continue;
         }
 
-        const { error: orderError } = await adminSupabase.from("purchase_orders").insert({
-          organization_id: subscription.organization_id,
-          owner_user_id: subscription.organizations?.owner_user_id ?? null,
-          order_number: orderNumber,
-          account_holder_name: accountHolderName,
-          account_holder_email: owner.invitation_email,
-          church_name: churchName,
-          plan_tier: plan.id,
-          amount: billing.total,
-          currency: plan.currency.toLowerCase(),
-          payment_status: "paid",
-          payment_provider: "fake-recurring",
-          card_brand: "Saved card",
-          card_last4: "4242",
-          billing_address_line1: subscription.organizations?.billing_address_line1 ?? "Billing address on file",
-          billing_suburb: subscription.organizations?.billing_suburb ?? "",
-          billing_state: subscription.organizations?.billing_state ?? "",
-          billing_postcode: subscription.organizations?.billing_postcode ?? "",
-          billing_country: billingCountry,
-          billing_phone: subscription.organizations?.billing_phone ?? ""
-        });
+        const { data: order, error: orderError } = await adminSupabase
+          .from("purchase_orders")
+          .insert({
+            organization_id: subscription.organization_id,
+            owner_user_id: subscription.organizations?.owner_user_id ?? null,
+            order_number: orderNumber,
+            account_holder_name: accountHolderName,
+            account_holder_email: owner.invitation_email,
+            church_name: churchName,
+            plan_tier: plan.id,
+            amount: billing.total,
+            currency: plan.currency.toLowerCase(),
+            payment_status: "paid",
+            payment_provider: "fake-recurring",
+            card_brand: "Saved card",
+            card_last4: "4242",
+            billing_address_line1: subscription.organizations?.billing_address_line1 ?? "Billing address on file",
+            billing_suburb: subscription.organizations?.billing_suburb ?? "",
+            billing_state: subscription.organizations?.billing_state ?? "",
+            billing_postcode: subscription.organizations?.billing_postcode ?? "",
+            billing_country: billingCountry,
+            billing_phone: subscription.organizations?.billing_phone ?? ""
+          })
+          .select("id")
+          .single();
 
-        if (orderError) {
+        if (orderError || !order) {
           skipped.push(`${subscription.id}:renewal-order-error`);
           continue;
         }
@@ -240,7 +244,8 @@ export async function GET(request: Request) {
           renewalDate: formatLongDateWithOrdinal(renewalDate),
           accessEndsDate: formatLongDateWithOrdinal(renewalDate),
           daysUntilRenewal: 365,
-          amount: `${formatCurrency(billing.total, plan.currency)}${billing.gstApplies ? " including GST" : ""}`
+          amount: `${formatCurrency(billing.total, plan.currency)}${billing.gstApplies ? " including GST" : ""}`,
+          invoiceUrl: `${generalSettings.siteUrl.replace(/\/+$/, "")}/api/account/invoices/${order.id}`
         };
         const [renewalEmail, paymentEmail] = await Promise.all([
           sendRenewalConfirmationEmail(updatedCommon),

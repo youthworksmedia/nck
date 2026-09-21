@@ -569,16 +569,17 @@ export async function POST(request: Request) {
       updated_at: new Date().toISOString()
     });
 
+    const generalSettings = await getGeneralEmailSettings();
     const paymentEmailInput = {
       to: accountEmail,
       accountHolderName: accountDetails.accountHolderName,
       churchName: accountDetails.churchName,
       planName: plan.name,
       renewalDate: formatLongDateWithOrdinal(renewalDates.renewalDate),
-      amount: `${formatCurrency(billing.total, plan.currency)}${billing.gstApplies ? " including GST" : ""}`
+      amount: `${formatCurrency(billing.total, plan.currency)}${billing.gstApplies ? " including GST" : ""}`,
+      invoiceUrl: `${generalSettings.siteUrl.replace(/\/+$/, "")}/api/account/invoices/${order.id}`
     };
-    const [generalSettings, welcomeEmail, paymentEmail] = await Promise.all([
-      getGeneralEmailSettings(),
+    const [welcomeEmail, paymentEmail] = await Promise.all([
       isSignedInOwner
         ? sendRenewalConfirmationEmail({
             to: accountEmail,

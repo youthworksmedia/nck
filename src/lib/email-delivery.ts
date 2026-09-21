@@ -25,6 +25,7 @@ export type LifecycleEmailInput = {
   churchName: string;
   planName: string;
   amount?: string;
+  invoiceUrl?: string;
   renewalDate?: string;
   accessEndsDate?: string;
   daysUntilRenewal?: number;
@@ -58,11 +59,26 @@ function normalizeSiteUrl(siteUrl?: string) {
   return (siteUrl || "https://new-creation-kids.vercel.app").replace(/\/+$/, "");
 }
 
-function linkifyEscapedText(value: string) {
-  return escapeHtml(value).replace(
-    /(https?:\/\/[^\s<]+)/g,
-    '<a href="$1" style="color:#2c89c1;text-decoration:underline;">$1</a>'
-  );
+function linkifyText(value: string) {
+  const markdownLinkPattern = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
+  let html = "";
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  const linkifyPlainUrls = (text: string) =>
+    escapeHtml(text).replace(
+      /(https?:\/\/[^\s<]+)/g,
+      '<a href="$1" style="color:#2c89c1;text-decoration:underline;">$1</a>'
+    );
+
+  while ((match = markdownLinkPattern.exec(value)) !== null) {
+    html += linkifyPlainUrls(value.slice(lastIndex, match.index));
+    html += `<a href="${escapeHtml(match[2] ?? "")}" style="color:#2c89c1;text-decoration:underline;">${escapeHtml(match[1] ?? "")}</a>`;
+    lastIndex = markdownLinkPattern.lastIndex;
+  }
+
+  html += linkifyPlainUrls(value.slice(lastIndex));
+
+  return html;
 }
 
 function textToEmailContent(text: string) {
@@ -72,7 +88,7 @@ function textToEmailContent(text: string) {
     .map((paragraph) => {
       const html = paragraph
         .split(/\n/)
-        .map((line) => linkifyEscapedText(line))
+        .map((line) => linkifyText(line))
         .join("<br />");
 
       return `<p style="margin:0 0 24px 0;color:#293344;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:1.58;">${html}</p>`;
@@ -127,6 +143,18 @@ function textToEmailHtml(text: string, siteUrl?: string) {
     </table>
   </body>
 </html>`;
+}
+
+function addPaymentInvoiceLink(body: string) {
+  const invoiceLine = "[Click here for downloading invoice (PDF)]({{invoiceUrl}})";
+  const signoffPattern = /\n\nBlessings,/i;
+  const signoffMatch = body.match(signoffPattern);
+
+  if (!signoffMatch || signoffMatch.index === undefined) {
+    return `${body.trim()}\n\n${invoiceLine}`;
+  }
+
+  return `${body.slice(0, signoffMatch.index).trim()}\n\n${invoiceLine}${body.slice(signoffMatch.index)}`;
 }
 
 export async function sendWelcomeEmail(input: WelcomeEmailInput): Promise<SendEmailResult> {
@@ -252,6 +280,7 @@ async function sendLifecycleEmail(templateKey: EmailTemplateKey, input: Lifecycl
       amount: input.amount ?? "",
       churchName: input.churchName,
       daysUntilRenewal: String(input.daysUntilRenewal ?? ""),
+      invoiceUrl: input.invoiceUrl ?? "",
       loginUrl: `${generalSettings.siteUrl}/login`,
       planName: input.planName,
       renewalDate: input.renewalDate ?? "",
@@ -277,7 +306,13 @@ async function sendActionEmail(input: {
   }
 
   const subject = renderEmailTemplate(template.subject, input.values);
-  const text = renderEmailTemplate(template.body, input.values);
+  const body =
+    input.templateKey === "payment_success" &&
+    input.values.invoiceUrl &&
+    !template.body.includes("{{invoiceUrl}}")
+      ? addPaymentInvoiceLink(template.body)
+      : template.body;
+  const text = renderEmailTemplate(body, input.values);
 
   return sendEmail({
     to: input.to,
