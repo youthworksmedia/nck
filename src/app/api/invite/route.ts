@@ -136,6 +136,13 @@ export async function POST(request: Request) {
     }
     }
     const redirectTo = `${generalSettings.siteUrl}/auth/callback?next=${encodeURIComponent("/create-account")}`;
+    const { data: organization } = await adminSupabase
+      .from("organizations")
+      .select("name, church_name")
+      .eq("id", organizationId)
+      .limit(1)
+      .maybeSingle();
+    const churchName = organization?.church_name || organization?.name || "your church";
 
     const { data: inviteLink, error: inviteLinkError } = await adminSupabase.auth.admin.generateLink({
       type: "invite",
@@ -153,6 +160,7 @@ export async function POST(request: Request) {
     const inviteEmail = await sendInviteEmail({
       to: memberEmail,
       actionUrl,
+      churchName,
       emailUrl
     });
 

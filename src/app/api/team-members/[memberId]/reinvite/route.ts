@@ -100,6 +100,14 @@ export async function POST(_request: Request, context: RouteContext) {
     }
 
     const redirectTo = `${generalSettings.siteUrl}/auth/callback?next=${encodeURIComponent("/create-account")}`;
+    const { data: organization } = await adminSupabase
+      .from("organizations")
+      .select("name, church_name")
+      .eq("id", targetMember.organization_id)
+      .limit(1)
+      .maybeSingle();
+    const churchName = organization?.church_name || organization?.name || "your church";
+
     const { data: inviteLink, error: inviteLinkError } = await adminSupabase.auth.admin.generateLink({
       type: "invite",
       email: memberEmail,
@@ -124,6 +132,7 @@ export async function POST(_request: Request, context: RouteContext) {
     const inviteEmail = await sendInviteEmail({
       to: memberEmail,
       actionUrl,
+      churchName,
       emailUrl
     });
 

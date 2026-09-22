@@ -609,7 +609,7 @@ export function AdminEmailSettingsForm({
 
 function getAvailableCodes(key?: EmailTemplate["key"]) {
   if (key === "invite") {
-    return "{{inviteUrl}}, {{actionUrl}}, {{loginUrl}}, {{siteUrl}}";
+    return "{{churchName}}, {{inviteUrl}}, {{actionUrl}}, {{loginUrl}}, {{siteUrl}}";
   }
 
   if (key === "reset") {

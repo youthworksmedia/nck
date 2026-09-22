@@ -86,10 +86,11 @@ export const defaultEmailTemplates: EmailTemplate[] = [
   {
     key: "invite",
     label: "Invite email",
-    description: "Sent when an account holder invites a new sub account. Use {{inviteUrl}} where the secure invite link should appear.",
+    description:
+      "Sent when an account holder invites a new sub account. Available codes: {{churchName}}, {{inviteUrl}}, {{actionUrl}}, {{loginUrl}}, {{siteUrl}}.",
     subject: "You have been invited to New Creation Kids",
     body:
-      "Hi,\n\nYou have been invited to join your church's New Creation Kids account.\n\nOpen this secure invitation link and create your password to access the curriculum resources:\n{{inviteUrl}}\n\nBlessings,\nNew Creation Kids"
+      "Hi,\n\nYou have been invited to join your church's New Creation Kids account. New Creation Kids is {{churchName}}'s children's ministry curriculum platform.\n\nOpen this secure invitation link and create your password to access the curriculum resources:\n{{inviteUrl}}\n\nBlessings,\nNew Creation Kids"
   },
   {
     key: "reset",

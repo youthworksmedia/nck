@@ -17,6 +17,7 @@ type WelcomeEmailInput = {
 type ActionEmailInput = {
   to: string;
   actionUrl: string;
+  churchName?: string;
   emailUrl?: string;
 };
 
@@ -60,6 +61,41 @@ function normalizeSiteUrl(siteUrl?: string) {
   return (siteUrl || "https://new-creation-kids.vercel.app").replace(/\/+$/, "");
 }
 
+function friendlyUrlLabel(value: string) {
+  try {
+    const url = new URL(value);
+    const pathname = url.pathname.replace(/\/+$/, "") || "/";
+
+    if (pathname === "/create-account") {
+      return "Create your password";
+    }
+
+    if (pathname === "/reset-password") {
+      return "Reset your password";
+    }
+
+    if (pathname === "/login") {
+      return "Log in to New Creation Kids";
+    }
+
+    if (pathname === "/account/subscription") {
+      return "View your subscription";
+    }
+
+    if (pathname === "/account") {
+      return "View your account";
+    }
+
+    if (url.hostname.includes("new-creation-kids")) {
+      return "Open New Creation Kids";
+    }
+  } catch {
+    return value;
+  }
+
+  return "Open link";
+}
+
 function linkifyText(value: string) {
   const markdownLinkPattern = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
   let html = "";
@@ -68,7 +104,8 @@ function linkifyText(value: string) {
   const linkifyPlainUrls = (text: string) =>
     escapeHtml(text).replace(
       /(https?:\/\/[^\s<]+)/g,
-      '<a href="$1" style="color:#2c89c1;text-decoration:underline;">$1</a>'
+      (url) =>
+        `<a href="${url}" style="color:#2c89c1;text-decoration:underline;">${escapeHtml(friendlyUrlLabel(url))}</a>`
     );
 
   while ((match = markdownLinkPattern.exec(value)) !== null) {
@@ -231,6 +268,7 @@ export async function sendInviteEmail(input: ActionEmailInput): Promise<SendEmai
     siteUrl: generalSettings.siteUrl,
     values: {
       actionUrl: emailUrl,
+      churchName: input.churchName ?? "your church",
       inviteUrl: emailUrl,
       loginUrl: `${generalSettings.siteUrl}/login`,
       resetUrl: emailUrl,
@@ -250,6 +288,7 @@ export async function sendResetEmail(input: ActionEmailInput): Promise<SendEmail
     siteUrl: generalSettings.siteUrl,
     values: {
       actionUrl: emailUrl,
+      churchName: input.churchName ?? "",
       inviteUrl: emailUrl,
       loginUrl: `${generalSettings.siteUrl}/login`,
       resetUrl: emailUrl,
