@@ -151,14 +151,14 @@ function LessonLayout({
   return (
     <div className="curriculum-table">
       <div className="curriculum-table-intro">
-        <strong>Weeks</strong>
+        <strong>Weekly Teaching Content</strong>
       </div>
       <div className="curriculum-table-columns">
         {columns.map((columnLessons, columnIndex) =>
           columnLessons.length ? (
             <div className="curriculum-table-column" key={columnIndex}>
               <div className="curriculum-table-row curriculum-table-head" aria-hidden="true">
-                <span>#</span>
+                <span>Week</span>
                 <span>Title</span>
               </div>
               {columnLessons.map((resource) => {

@@ -1635,7 +1635,7 @@ button {
 
 .curriculum-table-intro strong {
   color: #1d1b20;
-  font-size: 1rem;
+  font-size: 1.12rem;
   font-weight: 900;
 }
 
@@ -1661,7 +1661,7 @@ button {
 
 .curriculum-table-row {
   display: grid;
-  grid-template-columns: 4rem minmax(0, 1fr);
+  grid-template-columns: 5rem minmax(0, 1fr);
   align-items: stretch;
   border-bottom: 1px solid rgba(121, 116, 126, 0.16);
 }
@@ -10569,7 +10569,7 @@ button {
   }
 
   .curriculum-table-row {
-    grid-template-columns: 3.2rem minmax(0, 1fr);
+    grid-template-columns: 4.4rem minmax(0, 1fr);
   }
 
   .curriculum-table-row > * {
