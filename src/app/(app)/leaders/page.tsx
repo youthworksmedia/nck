@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { Route } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, FileText, Gamepad2, Home, Link as LinkIcon, Play, Plus } from "lucide-react";
+import { ArrowRight, FileText, Gamepad2, Home, Image as ImageIcon, Link as LinkIcon, Play, Plus } from "lucide-react";
 
 import { getPublishedLeaderResources } from "@/lib/leader-resources";
 import { buildPrivateMetadata } from "@/lib/metadata";
@@ -15,6 +15,10 @@ export const metadata: Metadata = buildPrivateMetadata({
 });
 
 function LeaderResourceIcon({ item }: { item: LeaderResourceItem }) {
+  if (item.url === "/leaders/photos" || item.title.trim().toLowerCase() === "image library") {
+    return <ImageIcon size={22} />;
+  }
+
   if (item.resourceType === "video") {
     return <Play size={22} fill="currentColor" />;
   }
@@ -61,6 +65,10 @@ function isGamesLibraryItem(item: LeaderResourceItem) {
   return item.url === "/leaders/games" || item.title.trim().toLowerCase() === "games library";
 }
 
+function isImageLibraryItem(item: LeaderResourceItem) {
+  return item.url === "/leaders/photos" || item.title.trim().toLowerCase() === "image library";
+}
+
 export default async function LeadersPage() {
   const [access, sections] = await Promise.all([
     getMemberAccessSnapshot(),
@@ -105,7 +113,7 @@ export default async function LeadersPage() {
                 {section.items.map((item) => {
                   const href = itemHref(item);
                   const isComingSoon = item.resourceType === "coming_soon";
-                  const isToolItem = isToolSection && isGamesLibraryItem(item);
+                  const isToolItem = isToolSection && (isGamesLibraryItem(item) || isImageLibraryItem(item));
                   const kicker = itemKicker(item);
 
                   const toolContent = (

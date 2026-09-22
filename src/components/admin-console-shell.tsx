@@ -22,6 +22,7 @@ type AdminSection =
   | "products"
   | "leaders"
   | "leader-games"
+  | "leader-photos"
   | "family"
   | "leader-resources"
   | "faqs"
@@ -107,7 +108,7 @@ export function AdminConsoleShell({
             <Link
               href={adminHref({ section: "leaders" })}
               className={`admin-console-link ${
-                activeSection === "leaders" || activeSection === "leader-games"
+                activeSection === "leaders" || activeSection === "leader-games" || activeSection === "leader-photos"
                   ? "admin-console-link-active"
                   : ""
               }`}
@@ -115,13 +116,19 @@ export function AdminConsoleShell({
               <Users size={18} />
               <span>Leaders</span>
             </Link>
-            {activeSection === "leaders" || activeSection === "leader-games" ? (
+            {activeSection === "leaders" || activeSection === "leader-games" || activeSection === "leader-photos" ? (
               <div className="admin-console-year-links" aria-label="Leader resource sections">
                 <Link
                   href={adminHref({ section: "leaders" })}
                   className={activeSection === "leaders" ? "is-active" : ""}
                 >
                   Resources
+                </Link>
+                <Link
+                  href={adminHref({ section: "leader-photos" })}
+                  className={activeSection === "leader-photos" ? "is-active" : ""}
+                >
+                  Images
                 </Link>
                 <Link
                   href={adminHref({ section: "leader-games" })}

@@ -2,6 +2,7 @@ import { cache } from "react";
 import { unstable_cache } from "next/cache";
 
 import { leaderGamesSectionId } from "@/lib/games-library";
+import { leaderPhotosSectionId } from "@/lib/photo-library";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { LeaderResourceItem, LeaderResourceSection } from "@/types";
 
@@ -10,7 +11,7 @@ type LeaderResourceType = LeaderResourceItem["resourceType"];
 const leaderResourceTypes: LeaderResourceType[] = ["video", "pdf", "guide", "tool", "link", "coming_soon"];
 
 export const leaderResourceTypeOptions = leaderResourceTypes;
-const hiddenLeaderResourceSectionIds = new Set([leaderGamesSectionId]);
+const hiddenLeaderResourceSectionIds = new Set([leaderGamesSectionId, leaderPhotosSectionId]);
 
 export function normalizeLeaderResourceType(value?: string | null): LeaderResourceType {
   return leaderResourceTypes.includes(value as LeaderResourceType) ? (value as LeaderResourceType) : "video";
@@ -73,10 +74,39 @@ export const demoLeaderResources: LeaderResourceSection[] = [
         fileName: null,
         displayOrder: 1,
         status: "open"
+      },
+      {
+        id: "image-library",
+        sectionId: "tools",
+        title: "Image Library",
+        description: "Photos of Bible places for teaching and downloads.",
+        eyebrow: "Tool",
+        duration: "",
+        resourceType: "tool",
+        url: "/leaders/photos",
+        filePath: null,
+        fileName: null,
+        displayOrder: 2,
+        status: "open"
       }
     ]
   }
 ];
+
+const imageLibraryToolItem: LeaderResourceItem = {
+  id: "image-library",
+  sectionId: "tools",
+  title: "Image Library",
+  description: "Photos of Bible places for teaching and downloads.",
+  eyebrow: "Tool",
+  duration: "",
+  resourceType: "tool",
+  url: "/leaders/photos",
+  filePath: null,
+  fileName: null,
+  displayOrder: 0,
+  status: "open"
+};
 
 function mapItem(row: Record<string, unknown>): LeaderResourceItem {
   return {
@@ -135,7 +165,11 @@ export const getAdminLeaderResources = cache(async function getAdminLeaderResour
       description: section.description ?? "",
       displayOrder: section.display_order ?? 0,
       status: section.published === false ? "closed" : "open",
-      items: itemsBySection.get(section.id) ?? []
+      items:
+        section.title.trim().toLowerCase() === "tools" &&
+        !(itemsBySection.get(section.id) ?? []).some((item) => item.url === "/leaders/photos")
+          ? [imageLibraryToolItem, ...(itemsBySection.get(section.id) ?? [])]
+          : itemsBySection.get(section.id) ?? []
     }));
 });
 

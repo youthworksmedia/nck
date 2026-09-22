@@ -6904,7 +6904,9 @@ button {
 }
 
 .games-library-page,
-.game-detail-page {
+.game-detail-page,
+.photo-library-page,
+.photo-detail-page {
   max-width: none;
   background: #f8f7f5;
 }
@@ -7199,6 +7201,157 @@ button {
   margin: 0;
   color: #827b86;
   font-weight: 750;
+}
+
+.photo-library-browser {
+  display: grid;
+  gap: 1.35rem;
+}
+
+.photo-library-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.photo-library-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-content: start;
+  overflow: hidden;
+  border: 1px solid #e7e2e8;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(42, 35, 49, 0.08);
+}
+
+.photo-library-thumb {
+  grid-column: 1 / -1;
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #e7e2e8;
+}
+
+.photo-library-thumb img,
+.photo-detail-frame img {
+  object-fit: cover;
+}
+
+.photo-library-card-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.35rem;
+  padding: 0 0 1rem 1rem;
+}
+
+.photo-library-card-copy a {
+  color: #252229;
+  font-size: 0.95rem;
+  font-weight: 900;
+  line-height: 1.15;
+  text-decoration: none;
+}
+
+.photo-library-card-copy p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin: 0;
+  color: #827b86;
+  font-size: 0.82rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.photo-download-button {
+  width: 2.25rem;
+  height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0.8rem 0.9rem 0;
+  border-radius: 9px;
+  background: #231f20;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.photo-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  align-items: center;
+  justify-content: center;
+  color: #827b86;
+  font-weight: 850;
+}
+
+.photo-pagination button {
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 1rem;
+  border: 1px solid #e2dde4;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #252229;
+  font: inherit;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.photo-pagination button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.photo-detail-content {
+  max-width: 940px;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.photo-detail-frame {
+  position: relative;
+  min-height: 28rem;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #e7e2e8;
+  box-shadow: 0 14px 34px rgba(42, 35, 49, 0.12);
+}
+
+.photo-detail-copy {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.photo-detail-copy h1 {
+  margin: 0;
+  color: #252229;
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 4vw, 3.45rem);
+  line-height: 0.94;
+  text-transform: uppercase;
+}
+
+.photo-detail-copy p {
+  max-width: 46rem;
+  margin: 0;
+  color: #827b86;
+  font-size: 1.08rem;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.photo-detail-copy .button {
+  width: fit-content;
 }
 
 .game-detail-content {
@@ -8620,6 +8773,12 @@ button {
   background: var(--admin-surface);
 }
 
+@media (max-width: 1200px) {
+  .photo-library-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 900px) {
   .admin-leader-section-form,
   .admin-leader-section-head,
@@ -8652,6 +8811,7 @@ button {
   .leaders-request-banner,
   .games-library-controls,
   .games-tile-grid,
+  .photo-library-grid,
   .game-list-row,
   .family-card-grid,
   .family-memory-grid,
@@ -8660,6 +8820,10 @@ button {
   .unit-overview-grid,
   .unit-video-grid {
     grid-template-columns: 1fr;
+  }
+
+  .photo-detail-frame {
+    min-height: 18rem;
   }
 
   .family-week-head {

@@ -3,7 +3,7 @@ import type { Route } from "next";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { FileText, Gamepad2, Plus } from "lucide-react";
+import { FileText, Gamepad2, Image as ImageIcon, Plus } from "lucide-react";
 
 import { AdminConsoleShell } from "@/components/admin-console-shell";
 import {
@@ -40,6 +40,7 @@ import {
 } from "@/lib/curriculum";
 import { buildPrivateMetadata } from "@/lib/metadata";
 import { getAdminPerformanceLogs, getAdminPerformanceRouteSummaries } from "@/lib/performance-logs";
+import { getAdminPhotos } from "@/lib/photo-library";
 import { plans } from "@/lib/plans";
 import { getCurrentUser } from "@/lib/portal";
 import { publicEnv } from "@/lib/public-env";
@@ -83,6 +84,9 @@ const AdminFamilyResources = dynamic(() =>
 const AdminGamesLibrary = dynamic(() =>
   import("@/components/admin-games-library").then((module) => module.AdminGamesLibrary)
 );
+const AdminPhotoLibrary = dynamic(() =>
+  import("@/components/admin-photo-library").then((module) => module.AdminPhotoLibrary)
+);
 const AdminHelpFaqs = dynamic(() =>
   import("@/components/admin-help-faqs").then((module) => module.AdminHelpFaqs)
 );
@@ -120,6 +124,7 @@ function getSection(value?: string) {
     value === "products" ||
     value === "leaders" ||
     value === "leader-games" ||
+    value === "leader-photos" ||
     value === "family" ||
     value === "leader-resources" ||
     value === "faqs" ||
@@ -197,6 +202,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   let products: Awaited<ReturnType<typeof getAdminProducts>> = [];
   let leaders: Awaited<ReturnType<typeof getAdminLeaderResources>> = [];
   let games: Awaited<ReturnType<typeof getAdminGames>> = [];
+  let photos: Awaited<ReturnType<typeof getAdminPhotos>> = [];
   let familyResources: Awaited<ReturnType<typeof getAdminFamilyResources>> = { cards: [], lessons: [], terms: [] };
   let leaderResources: Awaited<ReturnType<typeof getAdminMinistryLeaderResources>> = [];
   let helpFaqs: Awaited<ReturnType<typeof getAdminHelpFaqs>> = [];
@@ -227,6 +233,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     leaders = await getAdminLeaderResources();
   } else if (activeSection === "leader-games") {
     games = await getAdminGames();
+  } else if (activeSection === "leader-photos") {
+    photos = await getAdminPhotos();
   } else if (activeSection === "family") {
     familyResources = await getAdminFamilyResources();
   } else if (activeSection === "leader-resources") {
@@ -433,6 +441,22 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 </Link>
               </div>
               <AdminGamesLibrary games={games} />
+            </section>
+          ) : null}
+
+          {activeSection === "leader-photos" ? (
+            <section className="panel admin-console-card">
+              <div className="section-head">
+                <div>
+                  <h1>Image Library</h1>
+                  <p>Add, edit, reorder, publish, or delete Bible place photos.</p>
+                </div>
+                <Link href="/leaders/photos" className="button button-secondary" target="_blank" rel="noreferrer">
+                  <ImageIcon size={16} />
+                  <span>View library</span>
+                </Link>
+              </div>
+              <AdminPhotoLibrary photos={photos} />
             </section>
           ) : null}
 
