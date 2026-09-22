@@ -151,8 +151,7 @@ function LessonLayout({
   return (
     <div className="curriculum-table">
       <div className="curriculum-table-intro">
-        <strong>Lesson layout</strong>
-        <span>Click a lesson title to open the lesson.</span>
+        <strong>Weeks</strong>
       </div>
       <div className="curriculum-table-columns">
         {columns.map((columnLessons, columnIndex) =>
