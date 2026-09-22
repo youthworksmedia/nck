@@ -114,30 +114,10 @@ export function ResourceLibrary({
                 group.term === selectedTerm ? (
                   <section key={group.term} className="resource-term-section">
                     {group.entries.length ? (
-                    <div className="curriculum-table">
-                      <div className="curriculum-table-row curriculum-table-head" aria-hidden="true">
-                        <span>#</span>
-                        <span>Lesson</span>
-                        <span>Big Idea</span>
-                        <span>Passage</span>
-                      </div>
-                      {group.entries.map((resource) => (
-                        <article key={resource.id} className="curriculum-table-row">
-                          <span className="curriculum-lesson-number">{resource.lessonNumber ?? 1}</span>
-                          <div className="curriculum-lesson-cell">
-                            <Link
-                              href={`/resources/${resource.id}`}
-                              className="curriculum-row-title"
-                              onClick={() => trackResourceVisit(resource.id)}
-                            >
-                              {resource.title}
-                            </Link>
-                          </div>
-                          <span className="curriculum-big-idea">{resource.bigIdea || "Big Idea coming soon."}</span>
-                          <span className="curriculum-passage">{resource.scripture || getFallbackPassage(group.entries.indexOf(resource))}</span>
-                        </article>
-                      ))}
-                    </div>
+                      <LessonLayout
+                        lessons={group.entries}
+                        onVisit={trackResourceVisit}
+                      />
                     ) : (
                       <p className="resource-empty">
                         No curriculum entries have been added for {selectedYear} {selectedTerm} yet.
@@ -155,6 +135,59 @@ export function ResourceLibrary({
         </div>
       </section>
     </>
+  );
+}
+
+function LessonLayout({
+  lessons,
+  onVisit
+}: {
+  lessons: Resource[];
+  onVisit: (resourceId: string) => void;
+}) {
+  const splitIndex = Math.ceil(lessons.length / 2);
+  const columns = lessons.length > 1 ? [lessons.slice(0, splitIndex), lessons.slice(splitIndex)] : [lessons];
+
+  return (
+    <div className="curriculum-table">
+      <div className="curriculum-table-intro">
+        <strong>Lesson layout</strong>
+        <span>Click a lesson title to open the lesson.</span>
+      </div>
+      <div className="curriculum-table-columns">
+        {columns.map((columnLessons, columnIndex) =>
+          columnLessons.length ? (
+            <div className="curriculum-table-column" key={columnIndex}>
+              <div className="curriculum-table-row curriculum-table-head" aria-hidden="true">
+                <span>#</span>
+                <span>Title</span>
+              </div>
+              {columnLessons.map((resource) => {
+                const lessonIndex = lessons.findIndex((entry) => entry.id === resource.id);
+
+                return (
+                  <article key={resource.id} className="curriculum-table-row">
+                    <span className="curriculum-lesson-number">{resource.lessonNumber ?? lessonIndex + 1}</span>
+                    <div className="curriculum-lesson-cell">
+                      <Link
+                        href={`/resources/${resource.id}`}
+                        className="curriculum-row-title"
+                        onClick={() => onVisit(resource.id)}
+                      >
+                        {resource.title}
+                      </Link>
+                      <span className="curriculum-passage">
+                        {resource.scripture || getFallbackPassage(lessonIndex)}
+                      </span>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          ) : null
+        )}
+      </div>
+    </div>
   );
 }
 

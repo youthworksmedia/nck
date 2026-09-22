@@ -1623,9 +1623,45 @@ button {
     0 2px 8px rgba(29, 27, 32, 0.06);
 }
 
+.curriculum-table-intro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.75rem;
+  align-items: baseline;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(121, 116, 126, 0.16);
+  background: rgba(250, 249, 251, 0.94);
+}
+
+.curriculum-table-intro strong {
+  color: #1d1b20;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.curriculum-table-intro span {
+  color: #8a858d;
+  font-weight: 700;
+}
+
+.curriculum-table-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.curriculum-table-column {
+  display: grid;
+  align-content: start;
+  border-right: 1px solid rgba(121, 116, 126, 0.16);
+}
+
+.curriculum-table-column:last-child {
+  border-right: 0;
+}
+
 .curriculum-table-row {
   display: grid;
-  grid-template-columns: 4rem minmax(18rem, 1.9fr) minmax(11rem, 0.95fr) minmax(9rem, 0.7fr);
+  grid-template-columns: 4rem minmax(0, 1fr);
   align-items: stretch;
   border-bottom: 1px solid rgba(121, 116, 126, 0.16);
 }
@@ -1637,7 +1673,7 @@ button {
 .curriculum-table-row > * {
   display: flex;
   align-items: center;
-  min-height: 5.8rem;
+  min-height: 5.4rem;
   padding: 1rem 1.15rem;
   border-right: 1px solid rgba(121, 116, 126, 0.16);
 }
@@ -1676,6 +1712,9 @@ button {
 }
 
 .curriculum-lesson-cell {
+  display: grid;
+  align-content: center;
+  gap: 0.35rem;
   align-items: center;
 }
 
@@ -1683,11 +1722,15 @@ button {
   color: #6750a4;
 }
 
-.curriculum-big-idea,
 .curriculum-passage {
   color: #8a858d;
   font-weight: 650;
   line-height: 1.45;
+}
+
+.curriculum-passage {
+  display: block;
+  font-size: 0.95rem;
 }
 
 .curriculum-resource-meta {
@@ -10512,22 +10555,28 @@ button {
     color: var(--muted);
   }
 
-  .curriculum-table-row {
+  .curriculum-table-columns {
     grid-template-columns: 1fr;
-    align-items: flex-start;
   }
 
-  .curriculum-table-row > * {
-    min-height: auto;
+  .curriculum-table-column {
     border-right: 0;
-    border-bottom: 1px solid rgba(121, 116, 126, 0.12);
+    border-bottom: 1px solid rgba(121, 116, 126, 0.16);
   }
 
-  .curriculum-table-row > *:last-child {
+  .curriculum-table-column:last-child {
     border-bottom: 0;
   }
 
-  .curriculum-table-head {
+  .curriculum-table-row {
+    grid-template-columns: 3.2rem minmax(0, 1fr);
+  }
+
+  .curriculum-table-row > * {
+    min-height: 4.8rem;
+  }
+
+  .curriculum-table-column:not(:first-child) .curriculum-table-head {
     display: none;
   }
 
