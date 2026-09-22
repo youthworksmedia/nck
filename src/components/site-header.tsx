@@ -43,6 +43,21 @@ function SiteHeaderView({ isLoggedIn, showMarketingNav = false }: SiteHeaderView
           </nav>
         ) : null}
         <div className="nav-actions">
+          <a
+            href="https://youthworksmedia.net"
+            className="youthworks-media-header-link"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Youthworks Media website"
+          >
+            <Image
+              src="/youthworks-media-logo.png"
+              alt="Youthworks Media"
+              width={600}
+              height={151}
+              className="youthworks-media-header-logo"
+            />
+          </a>
           {isLoggedIn ? (
             <>
               <Link href="/account" className="nav-dashboard-button">

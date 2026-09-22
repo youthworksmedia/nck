@@ -179,6 +179,17 @@ button {
   font-weight: 700;
 }
 
+.youthworks-media-header-link {
+  display: inline-flex;
+  align-items: center;
+}
+
+.youthworks-media-header-logo {
+  display: block;
+  width: 7.1rem;
+  height: auto;
+}
+
 .nav-dashboard-button {
   display: inline-flex;
   align-items: center;
