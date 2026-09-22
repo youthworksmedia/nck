@@ -13,7 +13,6 @@ type RouteContext = {
 
 const schema = z.object({
   title: z.string().trim().min(1),
-  slug: z.string().trim().min(1),
   description: z.string().trim().min(1),
   displayOrder: z.coerce.number().int().min(0).default(0),
   status: z.enum(["open", "closed"]).default("open")
@@ -35,7 +34,6 @@ export async function PUT(request: Request, context: RouteContext) {
   const formData = await request.formData();
   const payload = schema.safeParse({
     title: formData.get("title"),
-    slug: formData.get("slug"),
     description: formData.get("description"),
     displayOrder: formData.get("displayOrder"),
     status: formData.get("status")
@@ -57,7 +55,7 @@ export async function PUT(request: Request, context: RouteContext) {
     .select("file_path,file_name")
     .eq("id", photoId)
     .maybeSingle();
-  const slug = slugifyPhotoTitle(payload.data.slug);
+  const slug = slugifyPhotoTitle(payload.data.title);
   const uploadedFile = formData.get("file");
   const saved =
     uploadedFile instanceof File && uploadedFile.size

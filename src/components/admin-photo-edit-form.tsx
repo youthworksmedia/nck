@@ -53,17 +53,16 @@ export function AdminPhotoEditForm({ photo }: Props) {
       </div>
       {message ? <p className="admin-form-status">{message}</p> : null}
       <input name="title" defaultValue={photo.title} placeholder="Photo title" required />
-      <input name="slug" defaultValue={photo.id} placeholder="URL slug" required />
+      <textarea name="description" defaultValue={photo.description} placeholder="Short description" required />
       <label className="admin-file-inline">
         <span>Replace image file</span>
         <input name="file" type="file" accept="image/*" />
         <small>Current: {photo.fileName}</small>
       </label>
       <select name="status" defaultValue={photo.status} aria-label="Status">
-        <option value="open">Open</option>
-        <option value="closed">Closed</option>
-      </select>
-      <textarea name="description" defaultValue={photo.description} placeholder="Short description" required />
+          <option value="open">Open</option>
+          <option value="closed">Closed</option>
+        </select>
       <div className="admin-game-actions">
         <button className="button button-primary" type="submit" disabled={isPending}>
           <Save size={16} />

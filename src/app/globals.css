@@ -8112,6 +8112,7 @@ button {
 }
 
 .admin-game-add-head,
+.admin-game-form textarea[name="description"],
 .admin-game-form textarea[name="summary"],
 .admin-game-form textarea[name="tip"],
 .admin-game-form .wysiwyg-shell,
@@ -8127,6 +8128,10 @@ button {
 
 .admin-game-form textarea[name="tip"] {
   min-height: 4.2rem;
+}
+
+.admin-game-form textarea[name="description"] {
+  min-height: 7.2rem;
 }
 
 .admin-game-add-head {

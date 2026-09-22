@@ -14,7 +14,6 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const schema = z.object({
   title: z.string().trim().min(1),
-  slug: z.string().trim().optional(),
   description: z.string().trim().min(1),
   displayOrder: z.coerce.number().int().min(0).default(0),
   status: z.enum(["open", "closed"]).default("open")
@@ -62,7 +61,6 @@ export async function POST(request: Request) {
   const formData = await request.formData();
   const payload = schema.safeParse({
     title: formData.get("title"),
-    slug: formData.get("slug"),
     description: formData.get("description"),
     displayOrder: formData.get("displayOrder"),
     status: formData.get("status")
@@ -79,7 +77,7 @@ export async function POST(request: Request) {
   }
 
   const adminSupabase = await ensurePhotosSection();
-  const slug = slugifyPhotoTitle(payload.data.slug || payload.data.title);
+  const slug = slugifyPhotoTitle(payload.data.title);
   const saved = await saveUploadedResourceFile(uploadedFile, "general");
   const imagePath = `/api/leaders/photos/${slug}/image`;
   const details = encodePhotoDetails({

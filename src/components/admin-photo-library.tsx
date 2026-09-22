@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { ArrowDown, ArrowUp, GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
 
-import { slugifyPhotoTitle, type PhotoLibraryImage } from "@/lib/photo-library";
+import type { PhotoLibraryImage } from "@/lib/photo-library";
 
 type Props = {
   photos: PhotoLibraryImage[];
@@ -176,10 +176,7 @@ export function AdminPhotoLibrary({ photos }: Props) {
           event.preventDefault();
           const form = event.currentTarget;
           const formData = new FormData(form);
-          const title = String(formData.get("title") ?? "");
-          const slug = String(formData.get("slug") ?? "").trim() || slugifyPhotoTitle(title);
 
-          formData.set("slug", slug);
           formData.set("displayOrder", String(orderedPhotos.length + 1));
 
           startTransition(async () => {
@@ -197,7 +194,7 @@ export function AdminPhotoLibrary({ photos }: Props) {
           <p>Upload a full-size image for the Image Library.</p>
         </div>
         <input name="title" placeholder="Photo title" required />
-        <input name="slug" placeholder="URL slug, e.g. capernaum" />
+        <textarea name="description" placeholder="Short description for cards and detail page" required />
         <label className="admin-file-inline">
           <span>Image file</span>
           <input name="file" type="file" accept="image/*" required />
@@ -206,7 +203,6 @@ export function AdminPhotoLibrary({ photos }: Props) {
           <option value="open">Open</option>
           <option value="closed">Closed</option>
         </select>
-        <textarea name="description" placeholder="Short description for cards and detail page" required />
         <button className="button button-primary" type="submit" disabled={isPending}>
           <Plus size={16} />
           <span>Add photo</span>
