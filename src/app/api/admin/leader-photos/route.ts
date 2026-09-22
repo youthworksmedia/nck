@@ -9,14 +9,13 @@ import {
   leaderPhotosSectionTitle,
   slugifyPhotoTitle
 } from "@/lib/photo-library";
+import { saveUploadedResourceFile } from "@/lib/resource-assets";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const schema = z.object({
   title: z.string().trim().min(1),
   slug: z.string().trim().optional(),
   description: z.string().trim().min(1),
-  imagePath: z.string().trim().min(1),
-  fileName: z.string().trim().optional(),
   displayOrder: z.coerce.number().int().min(0).default(0),
   status: z.enum(["open", "closed"]).default("open")
 });
@@ -65,8 +64,6 @@ export async function POST(request: Request) {
     title: formData.get("title"),
     slug: formData.get("slug"),
     description: formData.get("description"),
-    imagePath: formData.get("imagePath"),
-    fileName: formData.get("fileName"),
     displayOrder: formData.get("displayOrder"),
     status: formData.get("status")
   });
@@ -75,13 +72,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Enter all photo fields correctly." }, { status: 400 });
   }
 
+  const uploadedFile = formData.get("file");
+
+  if (!(uploadedFile instanceof File) || !uploadedFile.size || !uploadedFile.type.startsWith("image/")) {
+    return NextResponse.json({ message: "Please upload an image file." }, { status: 400 });
+  }
+
   const adminSupabase = await ensurePhotosSection();
   const slug = slugifyPhotoTitle(payload.data.slug || payload.data.title);
-  const fileName = payload.data.fileName || payload.data.imagePath.split("/").pop() || `${slug}.jpg`;
+  const saved = await saveUploadedResourceFile(uploadedFile, "general");
+  const imagePath = `/api/leaders/photos/${slug}/image`;
   const details = encodePhotoDetails({
     id: slug,
-    imagePath: payload.data.imagePath,
-    fileName
+    imagePath,
+    fileName: saved.name
   });
   const { error } = await adminSupabase.from("leader_resource_items").insert({
     section_id: leaderPhotosSectionId,
@@ -90,8 +94,8 @@ export async function POST(request: Request) {
     eyebrow: "Image",
     resource_type: "tool",
     url: details,
-    file_path: payload.data.imagePath,
-    file_name: fileName,
+    file_path: saved.path,
+    file_name: saved.name,
     display_order: payload.data.displayOrder,
     published: payload.data.status === "open"
   });

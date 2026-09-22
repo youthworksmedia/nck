@@ -194,12 +194,14 @@ export function AdminPhotoLibrary({ photos }: Props) {
       >
         <div className="admin-game-add-head">
           <h2>Add new photo</h2>
-          <p>Add a new Image Library entry. Use a public path such as /bible-photos/Capernaum.jpeg.</p>
+          <p>Upload a full-size image for the Image Library.</p>
         </div>
         <input name="title" placeholder="Photo title" required />
         <input name="slug" placeholder="URL slug, e.g. capernaum" />
-        <input name="imagePath" placeholder="/bible-photos/Capernaum.jpeg" required />
-        <input name="fileName" placeholder="Download filename, e.g. Capernaum.jpeg" />
+        <label className="admin-file-inline">
+          <span>Image file</span>
+          <input name="file" type="file" accept="image/*" required />
+        </label>
         <select name="status" defaultValue="open" aria-label="Status">
           <option value="open">Open</option>
           <option value="closed">Closed</option>

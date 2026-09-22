@@ -78,6 +78,16 @@ export function MemberSidebarNav({ isSuperAdmin, isOwner, className = "", onNavi
         {isLeadersPage ? (
           <div className="member-sidebar-lessons" aria-label="Leader resources menu">
             <Link
+              href={"/leaders/photos" as Route}
+              aria-current={isActive(pathname, "/leaders/photos") ? "page" : undefined}
+              className={`member-sidebar-lesson-year-link ${
+                isActive(pathname, "/leaders/photos") ? "member-sidebar-lesson-year-link-active" : ""
+              }`}
+              onClick={onNavigate}
+            >
+              <span>Images</span>
+            </Link>
+            <Link
               href={"/leaders/games" as Route}
               aria-current={isActive(pathname, "/leaders/games") ? "page" : undefined}
               className={`member-sidebar-lesson-year-link ${

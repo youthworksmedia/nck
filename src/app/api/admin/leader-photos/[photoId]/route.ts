@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { isCurrentUserSuperAdmin } from "@/lib/admin-access";
 import { encodePhotoDetails, slugifyPhotoTitle } from "@/lib/photo-library";
+import { removeStoredResourceFile, saveUploadedResourceFile } from "@/lib/resource-assets";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 type RouteContext = {
@@ -14,8 +15,6 @@ const schema = z.object({
   title: z.string().trim().min(1),
   slug: z.string().trim().min(1),
   description: z.string().trim().min(1),
-  imagePath: z.string().trim().min(1),
-  fileName: z.string().trim().optional(),
   displayOrder: z.coerce.number().int().min(0).default(0),
   status: z.enum(["open", "closed"]).default("open")
 });
@@ -38,8 +37,6 @@ export async function PUT(request: Request, context: RouteContext) {
     title: formData.get("title"),
     slug: formData.get("slug"),
     description: formData.get("description"),
-    imagePath: formData.get("imagePath"),
-    fileName: formData.get("fileName"),
     displayOrder: formData.get("displayOrder"),
     status: formData.get("status")
   });
@@ -55,11 +52,24 @@ export async function PUT(request: Request, context: RouteContext) {
   }
 
   const { photoId } = await context.params;
+  const { data: currentItem } = await adminSupabase
+    .from("leader_resource_items")
+    .select("file_path,file_name")
+    .eq("id", photoId)
+    .maybeSingle();
   const slug = slugifyPhotoTitle(payload.data.slug);
-  const fileName = payload.data.fileName || payload.data.imagePath.split("/").pop() || `${slug}.jpg`;
+  const uploadedFile = formData.get("file");
+  const saved =
+    uploadedFile instanceof File && uploadedFile.size
+      ? await saveUploadedResourceFile(uploadedFile, "general")
+      : null;
+  const imagePath = saved || !currentItem?.file_path?.startsWith("/")
+    ? `/api/leaders/photos/${slug}/image`
+    : currentItem.file_path;
+  const fileName = saved?.name || currentItem?.file_name || imagePath.split("/").pop() || `${slug}.jpg`;
   const details = encodePhotoDetails({
     id: slug,
-    imagePath: payload.data.imagePath,
+    imagePath,
     fileName
   });
   const { error } = await adminSupabase
@@ -70,7 +80,7 @@ export async function PUT(request: Request, context: RouteContext) {
       eyebrow: "Image",
       resource_type: "tool",
       url: details,
-      file_path: payload.data.imagePath,
+      file_path: saved?.path ?? currentItem?.file_path ?? imagePath,
       file_name: fileName,
       display_order: payload.data.displayOrder,
       published: payload.data.status === "open",
@@ -80,6 +90,10 @@ export async function PUT(request: Request, context: RouteContext) {
 
   if (error) {
     return NextResponse.json({ message: error.message }, { status: 400 });
+  }
+
+  if (saved && currentItem?.file_path) {
+    await removeStoredResourceFile(currentItem.file_path);
   }
 
   revalidatePhotos();

@@ -13,6 +13,10 @@ type Props = {
 
 const pageSize = 36;
 
+function getPhotoDownloadHref(photo: PhotoLibraryImage) {
+  return photo.imagePath.startsWith("/api/leaders/photos/") ? `${photo.imagePath}?download=1` : photo.imagePath;
+}
+
 export function PhotoLibraryBrowser({ photos }: Props) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -55,13 +59,19 @@ export function PhotoLibraryBrowser({ photos }: Props) {
           {pagedPhotos.map((photo) => (
             <article className="photo-library-card" key={photo.id}>
               <Link className="photo-library-thumb" href={`/leaders/photos/${photo.id}`}>
-                <Image src={photo.imagePath} alt={photo.title} fill sizes="(max-width: 760px) 50vw, 16vw" />
+                <Image
+                  src={photo.imagePath}
+                  alt={photo.title}
+                  fill
+                  sizes="(max-width: 760px) 50vw, 16vw"
+                  unoptimized={photo.imagePath.startsWith("/api/")}
+                />
               </Link>
               <div className="photo-library-card-copy">
                 <Link href={`/leaders/photos/${photo.id}`}>{photo.title}</Link>
                 <p>{photo.description}</p>
               </div>
-              <a className="photo-download-button" href={photo.imagePath} download={photo.fileName} aria-label={`Download ${photo.title}`}>
+              <a className="photo-download-button" href={getPhotoDownloadHref(photo)} download={photo.fileName} aria-label={`Download ${photo.title}`}>
                 <Download size={16} />
               </a>
             </article>

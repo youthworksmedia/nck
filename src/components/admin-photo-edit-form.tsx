@@ -49,13 +49,16 @@ export function AdminPhotoEditForm({ photo }: Props) {
           Back to Image Library
         </Link>
         <h1>Edit photo</h1>
-        <p>Update the title, description, public image path, and status shown in the Image Library.</p>
+        <p>Update the title, description, image file, and status shown in the Image Library.</p>
       </div>
       {message ? <p className="admin-form-status">{message}</p> : null}
       <input name="title" defaultValue={photo.title} placeholder="Photo title" required />
       <input name="slug" defaultValue={photo.id} placeholder="URL slug" required />
-      <input name="imagePath" defaultValue={photo.imagePath} placeholder="/bible-photos/Capernaum.jpeg" required />
-      <input name="fileName" defaultValue={photo.fileName} placeholder="Download filename" />
+      <label className="admin-file-inline">
+        <span>Replace image file</span>
+        <input name="file" type="file" accept="image/*" />
+        <small>Current: {photo.fileName}</small>
+      </label>
       <select name="status" defaultValue={photo.status} aria-label="Status">
         <option value="open">Open</option>
         <option value="closed">Closed</option>

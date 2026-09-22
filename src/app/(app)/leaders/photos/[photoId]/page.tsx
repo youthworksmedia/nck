@@ -12,6 +12,10 @@ type Props = {
   params: Promise<{ photoId: string }>;
 };
 
+function getPhotoDownloadHref(photo: NonNullable<Awaited<ReturnType<typeof getPhotoById>>>) {
+  return photo.imagePath.startsWith("/api/leaders/photos/") ? `${photo.imagePath}?download=1` : photo.imagePath;
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { photoId } = await params;
   const photo = await getPhotoById(photoId);
@@ -53,12 +57,19 @@ export default async function PhotoDetailPage({ params }: Props) {
       </Link>
       <article className="photo-detail-content">
         <div className="photo-detail-frame">
-          <Image src={photo.imagePath} alt={photo.title} fill sizes="(max-width: 900px) 100vw, 900px" priority />
+          <Image
+            src={photo.imagePath}
+            alt={photo.title}
+            fill
+            sizes="(max-width: 900px) 100vw, 900px"
+            priority
+            unoptimized={photo.imagePath.startsWith("/api/")}
+          />
         </div>
         <div className="photo-detail-copy">
           <h1>{photo.title}</h1>
           <p>{photo.description}</p>
-          <a className="button button-primary" href={photo.imagePath} download={photo.fileName}>
+          <a className="button button-primary" href={getPhotoDownloadHref(photo)} download={photo.fileName}>
             <Download size={16} />
             <span>Download image</span>
           </a>
