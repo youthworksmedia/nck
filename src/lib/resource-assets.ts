@@ -268,7 +268,18 @@ export async function downloadStoredResourceFile(
   }
 
   const bucket = await ensureResourceBucket();
-  const { data, error } = await bucket.download(storagePath);
+  let { data, error } = await bucket.download(storagePath);
+
+  if (error || !data) {
+    const adminSupabase = createSupabaseAdminClient();
+    const legacyBucketName = getLegacyResourceBucketName();
+
+    if (adminSupabase && getStoredResourceBucketName() !== legacyBucketName) {
+      const legacyResult = await adminSupabase.storage.from(legacyBucketName).download(storagePath);
+      data = legacyResult.data;
+      error = legacyResult.error;
+    }
+  }
 
   if (error || !data) {
     return null;
