@@ -1635,10 +1635,8 @@ button {
 }
 
 .curriculum-table-intro {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem 0.75rem;
-  align-items: baseline;
+  display: grid;
+  gap: 0.35rem;
   padding: 1rem 1.25rem;
   border-bottom: 1px solid rgba(121, 116, 126, 0.16);
   background: rgba(250, 249, 251, 0.94);
