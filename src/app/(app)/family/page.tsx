@@ -167,7 +167,6 @@ export default async function FamilyPage({ searchParams }: FamilyPageProps) {
           <div className="resource-term-tabs-inline family-term-tabs" aria-label={`${activeYear} family resource units`}>
             {familySections.map((section) => {
               const isActive = activeSection === section;
-              const subtitle = getCurriculumSectionMeta(activeYear, section).title;
 
               return (
                 <Link
@@ -177,7 +176,6 @@ export default async function FamilyPage({ searchParams }: FamilyPageProps) {
                   className={`resource-term-pill family-term-tab ${isActive ? "resource-term-pill-active family-term-tab-active" : ""}`}
                 >
                   <span>{section}</span>
-                  <small>{subtitle}</small>
                 </Link>
               );
             })}

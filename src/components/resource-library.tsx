@@ -7,7 +7,6 @@ import { useMemo, useState } from "react";
 import { ModalPortal } from "@/components/modal-portal";
 import {
   curriculumSections,
-  getCurriculumSectionMeta,
   normalizeCurriculumSection,
   normalizeCurriculumYear,
   type CurriculumSection,
@@ -59,16 +58,6 @@ export function ResourceLibrary({
     [selectedTerm, selectedYear, unitOverviews]
   );
 
-  function getUnitSubtitle(term: CurriculumSection) {
-    return (
-      unitOverviews.find(
-        (overview) =>
-          normalizeCurriculumYear(overview.yearCycle) === selectedYear &&
-          normalizeCurriculumSection(overview.term) === term
-      )?.subtitle || getCurriculumSectionMeta(selectedYear, term).title
-    );
-  }
-
   function trackResourceVisit(resourceId: string) {
     fetch("/api/dashboard-state/resource", {
       method: "POST",
@@ -88,7 +77,6 @@ export function ResourceLibrary({
         <div className="resource-term-tabs-inline" aria-label={`${selectedYear} sections`}>
           {curriculumSections.map((term) => {
             const isActive = selectedTerm === term;
-            const subtitle = getUnitSubtitle(term);
 
             return (
               <Link
@@ -98,7 +86,6 @@ export function ResourceLibrary({
                 className={`resource-term-pill ${isActive ? "resource-term-pill-active" : ""}`}
               >
                 <span>{term}</span>
-                <small>{subtitle}</small>
               </Link>
             );
           })}
