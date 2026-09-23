@@ -190,9 +190,7 @@ function UnitOverview({
   const [previewGraphic, setPreviewGraphic] = useState<CurriculumUnitGraphic | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const hasGraphics = overview.graphics.length > 0;
-  const heroImageUrl = overview.heroImagePath
-    ? `/api/resources/unit-overviews/hero-image?year=${encodeURIComponent(overview.yearCycle)}&term=${encodeURIComponent(overview.term)}`
-    : null;
+  const heroImageUrl = `/api/resources/unit-overviews/hero-image?year=${encodeURIComponent(overview.yearCycle)}&term=${encodeURIComponent(overview.term)}`;
 
   async function downloadAllGraphics() {
     if (!hasGraphics || isDownloading) {
@@ -276,8 +274,8 @@ function UnitOverview({
   return (
     <section className="unit-overview-wrap">
       <div
-        className={`unit-hero-card ${heroImageUrl ? "unit-hero-card-with-image" : ""}`}
-        style={heroImageUrl ? { backgroundImage: `linear-gradient(90deg, rgba(33, 31, 38, 0.96) 0%, rgba(33, 31, 38, 0.78) 46%, rgba(33, 31, 38, 0.16) 100%), url("${heroImageUrl}")` } : undefined}
+        className="unit-hero-card unit-hero-card-with-image"
+        style={{ backgroundImage: `linear-gradient(90deg, rgba(33, 31, 38, 0.96) 0%, rgba(33, 31, 38, 0.78) 46%, rgba(33, 31, 38, 0.16) 100%), url("${heroImageUrl}")` }}
       >
         <span className="eyebrow">
           <Home size={17} />

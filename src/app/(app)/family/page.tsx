@@ -123,6 +123,9 @@ export default async function FamilyPage({ searchParams }: FamilyPageProps) {
       normalizeCurriculumYear(overview.yearCycle) === activeYear &&
       normalizeCurriculumSection(overview.term) === activeSection
   );
+  const activeUnitHeroImageUrl = activeUnitOverview
+    ? `/api/resources/unit-overviews/hero-image?year=${encodeURIComponent(activeUnitOverview.yearCycle)}&term=${encodeURIComponent(activeUnitOverview.term)}`
+    : null;
   const termMemory = resources.terms.find((term) => term.term === activeTerm);
   const memoryLesson = familyLessons.find((lesson) => lesson.memoryText || lesson.memoryUrl);
   const unitMemoryCards = memoryCardItems(termMemory);
@@ -184,11 +187,11 @@ export default async function FamilyPage({ searchParams }: FamilyPageProps) {
 
         {activeUnitOverview ? (
           <div
-            className={`unit-hero-card family-unit-hero ${activeUnitOverview.heroImagePath ? "unit-hero-card-with-image" : ""}`}
+            className="unit-hero-card unit-hero-card-with-image family-unit-hero"
             style={
-              activeUnitOverview.heroImagePath
+              activeUnitHeroImageUrl
                 ? {
-                    backgroundImage: `linear-gradient(90deg, rgba(33, 31, 38, 0.96) 0%, rgba(33, 31, 38, 0.78) 46%, rgba(33, 31, 38, 0.16) 100%), url("/api/resources/unit-overviews/hero-image?year=${encodeURIComponent(activeUnitOverview.yearCycle)}&term=${encodeURIComponent(activeUnitOverview.term)}")`
+                    backgroundImage: `linear-gradient(90deg, rgba(33, 31, 38, 0.96) 0%, rgba(33, 31, 38, 0.78) 46%, rgba(33, 31, 38, 0.16) 100%), url("${activeUnitHeroImageUrl}")`
                   }
                 : undefined
             }
