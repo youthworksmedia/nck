@@ -152,6 +152,7 @@ function LessonLayout({
     <div className="curriculum-table">
       <div className="curriculum-table-intro">
         <strong>Weekly Teaching Content</strong>
+        <p className="curriculum-table-instruction">Click on the Week Title to access that week's teaching content</p>
       </div>
       <div className="curriculum-table-columns">
         {columns.map((columnLessons, columnIndex) =>

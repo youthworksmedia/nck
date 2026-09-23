@@ -1650,6 +1650,13 @@ button {
   font-weight: 900;
 }
 
+.curriculum-table-instruction {
+  margin: 0;
+  color: #8a858d;
+  font-size: 1rem;
+  font-weight: 400;
+}
+
 .curriculum-table-intro span {
   color: #8a858d;
   font-weight: 700;
