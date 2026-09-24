@@ -77,10 +77,10 @@ export function AdminFamilyUnitEditForm({ termNumber, term }: Props) {
             <input name="memoryUrl" type="hidden" defaultValue={term?.memoryUrl ?? ""} />
             <small>{term?.memoryUrl ? `Current: ${term.memoryUrl.split("/").pop()}` : "No file uploaded"}</small>
             {term?.memoryUrl ? (
-              <label className="admin-family-remove-file">
+              <span className="admin-family-remove-file">
                 <input name="removeMemoryFile" type="checkbox" value="true" />
                 <span>Remove current file</span>
-              </label>
+              </span>
             ) : null}
           </label>
           <label className="admin-family-memory-fields">
@@ -95,10 +95,10 @@ export function AdminFamilyUnitEditForm({ termNumber, term }: Props) {
             <input name="memoryUrl2" type="hidden" defaultValue={term?.memoryUrl2 ?? ""} />
             <small>{term?.memoryUrl2 ? `Current: ${term.memoryUrl2.split("/").pop()}` : "No file uploaded"}</small>
             {term?.memoryUrl2 ? (
-              <label className="admin-family-remove-file">
+              <span className="admin-family-remove-file">
                 <input name="removeMemoryFile2" type="checkbox" value="true" />
                 <span>Remove current file</span>
-              </label>
+              </span>
             ) : null}
           </label>
         </div>
@@ -118,10 +118,10 @@ export function AdminFamilyUnitEditForm({ termNumber, term }: Props) {
               {term?.readingGuideUrl ? `Current: ${term.readingGuideUrl.split("/").pop()}` : "No file uploaded"}
             </small>
             {term?.readingGuideUrl ? (
-              <label className="admin-family-remove-file">
+              <span className="admin-family-remove-file">
                 <input name="removeReadingGuideFile" type="checkbox" value="true" />
                 <span>Remove current file</span>
-              </label>
+              </span>
             ) : null}
           </label>
           <label className="admin-family-memory-fields">
@@ -151,10 +151,10 @@ export function AdminFamilyUnitEditForm({ termNumber, term }: Props) {
               {term?.parentDevotionUrl ? `Current: ${term.parentDevotionUrl.split("/").pop()}` : "No file uploaded"}
             </small>
             {term?.parentDevotionUrl ? (
-              <label className="admin-family-remove-file">
+              <span className="admin-family-remove-file">
                 <input name="removeParentDevotionFile" type="checkbox" value="true" />
                 <span>Remove current file</span>
-              </label>
+              </span>
             ) : null}
           </label>
           <label className="admin-family-memory-fields">
