@@ -8523,6 +8523,20 @@ button {
   overflow-wrap: anywhere;
 }
 
+.admin-family-remove-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: fit-content;
+  color: var(--admin-on-surface-variant);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.admin-family-remove-file input {
+  width: auto;
+}
+
 .admin-family-memory-fields span,
 .admin-family-lesson-form label span {
   color: var(--admin-on-surface-variant);

@@ -16,6 +16,10 @@ const schema = z.object({
   readingGuideCanvaUrl: z.string().trim().url().or(z.literal("")).optional(),
   parentDevotionUrl: z.string().trim().optional(),
   parentDevotionCanvaUrl: z.string().trim().url().or(z.literal("")).optional(),
+  removeMemoryFile: z.preprocess((value) => value === "true" || value === true, z.boolean()).default(false),
+  removeMemoryFile2: z.preprocess((value) => value === "true" || value === true, z.boolean()).default(false),
+  removeReadingGuideFile: z.preprocess((value) => value === "true" || value === true, z.boolean()).default(false),
+  removeParentDevotionFile: z.preprocess((value) => value === "true" || value === true, z.boolean()).default(false),
   status: z.enum(["open", "closed"]).default("open")
 });
 
@@ -41,6 +45,10 @@ export async function POST(request: Request) {
     readingGuideCanvaUrl: formData.get("readingGuideCanvaUrl"),
     parentDevotionUrl: formData.get("parentDevotionUrl"),
     parentDevotionCanvaUrl: formData.get("parentDevotionCanvaUrl"),
+    removeMemoryFile: formData.get("removeMemoryFile"),
+    removeMemoryFile2: formData.get("removeMemoryFile2"),
+    removeReadingGuideFile: formData.get("removeReadingGuideFile"),
+    removeParentDevotionFile: formData.get("removeParentDevotionFile"),
     status: formData.get("status")
   });
 
@@ -70,10 +78,14 @@ export async function POST(request: Request) {
     parentDevotionFile instanceof File && parentDevotionFile.size
       ? await saveUploadedResourceFile(parentDevotionFile, "general")
       : null;
-  const memoryUrl = memoryUpload?.path ?? (payload.data.memoryUrl || null);
-  const memoryUrl2 = memoryUpload2?.path ?? (payload.data.memoryUrl2 || null);
-  const readingGuideUrl = readingGuideUpload?.path ?? (payload.data.readingGuideUrl || null);
-  const parentDevotionUrl = parentDevotionUpload?.path ?? (payload.data.parentDevotionUrl || null);
+  const memoryUrl = payload.data.removeMemoryFile ? null : memoryUpload?.path ?? (payload.data.memoryUrl || null);
+  const memoryUrl2 = payload.data.removeMemoryFile2 ? null : memoryUpload2?.path ?? (payload.data.memoryUrl2 || null);
+  const readingGuideUrl = payload.data.removeReadingGuideFile
+    ? null
+    : readingGuideUpload?.path ?? (payload.data.readingGuideUrl || null);
+  const parentDevotionUrl = payload.data.removeParentDevotionFile
+    ? null
+    : parentDevotionUpload?.path ?? (payload.data.parentDevotionUrl || null);
   const memoryItems = [
     {
       text: payload.data.memoryText ?? "",
