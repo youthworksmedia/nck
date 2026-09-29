@@ -48,11 +48,12 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ message: "Invoice not found." }, { status: 404 });
   }
 
-  const [plans, logoBytes] = await Promise.all([
+  const [plans, logoBytes, youthworksMediaLogoBytes] = await Promise.all([
     getPlans(),
-    readFile(path.join(process.cwd(), "public", "nck-logo.png")).catch(() => null)
+    readFile(path.join(process.cwd(), "public", "nck-logo.png")).catch(() => null),
+    readFile(path.join(process.cwd(), "public", "youthworks-media-logo.png")).catch(() => null)
   ]);
-  const bytes = await createInvoicePdf({ order, plans, logoBytes });
+  const bytes = await createInvoicePdf({ order, plans, logoBytes, youthworksMediaLogoBytes });
 
   return new NextResponse(new Uint8Array(bytes), {
     headers: {

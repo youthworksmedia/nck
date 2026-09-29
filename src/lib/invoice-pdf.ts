@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, type PDFFont, type PDFPage, rgb } from "pdf-lib";
+import { PDFDocument, StandardFonts, type PDFFont, type PDFImage, type PDFPage, rgb } from "pdf-lib";
 
 import { australiaGstRate, getIncludedGstBreakdown } from "./billing";
 
@@ -109,6 +109,14 @@ function formatStatus(value: string) {
   }
 
   return titleCase(value || "Unknown");
+}
+
+function formatInvoiceNumber(order: InvoicePdfOrder) {
+  const tier = order.plan_tier.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const digits = `${order.order_number}${order.id}`.replace(/\D/g, "");
+  const suffix = digits.slice(-4).padStart(4, "0");
+
+  return `nck-${tier || "subscription"}-${suffix}`;
 }
 
 function planDisplayName(planName: string) {
@@ -224,7 +232,7 @@ function supplierLines() {
     { text: "Level 1, 263 Clarence Street" },
     { text: "Sydney NSW 2000, Australia" },
     { text: "ABN: 96 398 231 605", boldPrefix: "ABN:" },
-    { text: "Phone: +61 2 8268 3344", boldPrefix: "Phone:" },
+    { text: "Phone: +61 2 8268 3306", boldPrefix: "Phone:" },
     { text: "Email: sales@youthworks.net", boldPrefix: "Email:" }
   ];
 }
@@ -287,7 +295,7 @@ function drawTopDetails(page: PDFPage, order: InvoicePdfOrder, fonts: InvoiceFon
   }
 
   const status = formatStatus(order.payment_status);
-  drawLabelValue(page, "Invoice number:", order.order_number, 312, 648, 94, fonts);
+  drawLabelValue(page, "Invoice number:", formatInvoiceNumber(order), 312, 648, 94, fonts);
   drawLabelValue(page, "Invoice date:", formatInvoiceDate(order.created_at), 312, 624, 94, fonts);
   drawText(page, "Status:", 312, 600, 11, fonts.bold);
   drawStatusBadge(page, status, 406, 600, fonts);
@@ -453,7 +461,7 @@ function drawTotals(
   );
 }
 
-function drawFooter(page: PDFPage, fonts: InvoiceFonts) {
+function drawFooter(page: PDFPage, fonts: InvoiceFonts, youthworksMediaLogo: PDFImage | null) {
   drawText(page, "Thank you for your purchase.", 25, 122, 17, fonts.bold, BLUE);
   drawText(
     page,
@@ -473,13 +481,23 @@ function drawFooter(page: PDFPage, fonts: InvoiceFonts) {
     fonts.regular,
     MUTED
   );
-  drawText(page, "sales@youthworks.net or +61 2 8268 3344.", 25, 62, 10.5, fonts.regular, MUTED);
+  drawText(page, "sales@youthworks.net or +61 2 8268 3306.", 25, 62, 10.5, fonts.regular, MUTED);
+
+  if (youthworksMediaLogo) {
+    page.drawImage(youthworksMediaLogo, {
+      x: 492,
+      y: 24,
+      width: 78,
+      height: 20
+    });
+  }
 }
 
 export async function createInvoicePdf(input: {
   order: InvoicePdfOrder;
   plans: InvoicePdfPlan[];
   logoBytes?: Uint8Array | ArrayBuffer | null;
+  youthworksMediaLogoBytes?: Uint8Array | ArrayBuffer | null;
 }) {
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
@@ -489,6 +507,9 @@ export async function createInvoicePdf(input: {
     oblique: await pdf.embedFont(StandardFonts.HelveticaOblique)
   };
   const logoImage = input.logoBytes ? await pdf.embedPng(input.logoBytes) : null;
+  const youthworksMediaLogo = input.youthworksMediaLogoBytes
+    ? await pdf.embedPng(input.youthworksMediaLogoBytes)
+    : null;
   const planName = input.plans.find((plan) => plan.id === input.order.plan_tier)?.name ?? input.order.plan_tier;
   const { amounts, tableBottom } = drawItems(page, input.order, planName, fonts);
 
@@ -496,12 +517,13 @@ export async function createInvoicePdf(input: {
   drawTopDetails(page, input.order, fonts);
   drawCustomerAndPayment(page, input.order, fonts);
   drawTotals(page, tableBottom, amounts, fonts);
-  drawFooter(page, fonts);
+  drawFooter(page, fonts, youthworksMediaLogo);
 
   return pdf.save();
 }
 
 export const invoicePdfFormatting = {
   formatInvoiceDate,
+  formatInvoiceNumber,
   formatMoney
 };

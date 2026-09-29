@@ -11,11 +11,12 @@ export type EmailAttachment = {
 };
 
 export async function createInvoiceEmailAttachment(order: InvoicePdfOrder): Promise<EmailAttachment> {
-  const [plans, logoBytes] = await Promise.all([
+  const [plans, logoBytes, youthworksMediaLogoBytes] = await Promise.all([
     getPlans(),
-    readFile(path.join(process.cwd(), "public", "nck-logo.png")).catch(() => null)
+    readFile(path.join(process.cwd(), "public", "nck-logo.png")).catch(() => null),
+    readFile(path.join(process.cwd(), "public", "youthworks-media-logo.png")).catch(() => null)
   ]);
-  const pdfBytes = await createInvoicePdf({ order, plans, logoBytes });
+  const pdfBytes = await createInvoicePdf({ order, plans, logoBytes, youthworksMediaLogoBytes });
   const filename = `${order.order_number || "New-Creation-Kids"}-invoice.pdf`;
 
   return {
