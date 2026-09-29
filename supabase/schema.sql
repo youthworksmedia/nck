@@ -146,6 +146,7 @@ create table if not exists nck.purchase_orders (
   organization_id uuid references nck.organizations(id) on delete set null,
   owner_user_id uuid references auth.users(id) on delete set null,
   order_number text not null unique,
+  invoice_number text not null unique,
   account_holder_name text not null,
   account_holder_email text not null,
   church_name text not null,
@@ -176,10 +177,79 @@ alter table nck.purchase_orders
   alter column amount type numeric(10, 2) using amount::numeric;
 
 alter table nck.purchase_orders
+  add column if not exists invoice_number text,
   add column if not exists discount_code_id uuid,
   add column if not exists discount_code text,
   add column if not exists discount_amount numeric(10, 2) not null default 0,
   add column if not exists original_amount numeric(10, 2);
+
+with numbered_orders as (
+  select
+    id,
+    'nck-' || lower(plan_tier::text) || '-' || lpad(
+      row_number() over (partition by plan_tier order by created_at, id)::text,
+      5,
+      '0'
+    ) as generated_invoice_number
+  from nck.purchase_orders
+  where invoice_number is null
+)
+update nck.purchase_orders purchase_order
+set invoice_number = numbered_orders.generated_invoice_number
+from numbered_orders
+where purchase_order.id = numbered_orders.id;
+
+alter table nck.purchase_orders
+  alter column invoice_number set not null;
+
+create unique index if not exists purchase_orders_invoice_number_key
+  on nck.purchase_orders(invoice_number);
+
+create table if not exists nck.invoice_counters (
+  plan_tier nck.plan_tier primary key,
+  next_number integer not null default 1 check (next_number > 0)
+);
+
+insert into nck.invoice_counters (plan_tier, next_number)
+select
+  plan_tier,
+  coalesce(max(substring(invoice_number from '-([0-9]+)$')::integer), 0) + 1
+from nck.purchase_orders
+group by plan_tier
+on conflict (plan_tier) do update
+set next_number = greatest(nck.invoice_counters.next_number, excluded.next_number);
+
+create or replace function nck.assign_purchase_order_invoice_number()
+returns trigger
+language plpgsql
+set search_path = nck, public
+as $$
+declare
+  assigned_sequence integer;
+begin
+  if new.invoice_number is not null and btrim(new.invoice_number) <> '' then
+    new.invoice_number := lower(new.invoice_number);
+    return new;
+  end if;
+
+  insert into nck.invoice_counters (plan_tier, next_number)
+  values (new.plan_tier, 2)
+  on conflict (plan_tier) do update
+  set next_number = nck.invoice_counters.next_number + 1
+  returning next_number - 1 into assigned_sequence;
+
+  new.invoice_number := 'nck-' || lower(new.plan_tier::text) || '-' || lpad(assigned_sequence::text, 5, '0');
+
+  return new;
+end;
+$$;
+
+drop trigger if exists assign_purchase_order_invoice_number on nck.purchase_orders;
+
+create trigger assign_purchase_order_invoice_number
+before insert on nck.purchase_orders
+for each row
+execute function nck.assign_purchase_order_invoice_number();
 
 create table if not exists nck.products (
   id uuid primary key default gen_random_uuid(),

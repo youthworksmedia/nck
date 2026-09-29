@@ -5,6 +5,7 @@ import { australiaGstRate, getIncludedGstBreakdown } from "./billing";
 export type InvoicePdfOrder = {
   id: string;
   order_number: string;
+  invoice_number: string | null;
   organization_id: string | null;
   account_holder_name: string;
   account_holder_email: string;
@@ -112,9 +113,13 @@ function formatStatus(value: string) {
 }
 
 function formatInvoiceNumber(order: InvoicePdfOrder) {
+  if (order.invoice_number?.trim()) {
+    return order.invoice_number.trim().toLowerCase();
+  }
+
   const tier = order.plan_tier.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   const digits = `${order.order_number}${order.id}`.replace(/\D/g, "");
-  const suffix = digits.slice(-4).padStart(4, "0");
+  const suffix = digits.slice(-5).padStart(5, "0");
 
   return `nck-${tier || "subscription"}-${suffix}`;
 }

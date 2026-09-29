@@ -17,7 +17,7 @@ export async function createInvoiceEmailAttachment(order: InvoicePdfOrder): Prom
     readFile(path.join(process.cwd(), "public", "youthworks-media-logo.png")).catch(() => null)
   ]);
   const pdfBytes = await createInvoicePdf({ order, plans, logoBytes, youthworksMediaLogoBytes });
-  const filename = `${order.order_number || "New-Creation-Kids"}-invoice.pdf`;
+  const filename = `${order.invoice_number || order.order_number || "New-Creation-Kids"}-invoice.pdf`;
 
   return {
     filename,
