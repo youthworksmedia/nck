@@ -14,7 +14,7 @@ type RouteContext = {
 
 const productSchema = z.object({
   title: z.string().trim().min(1, "Add a product title."),
-  productType: z.string().trim().min(1, "Add the student range."),
+  productType: z.string().trim().min(1, "Add the kids ministry size range."),
   summaryHtml: z.string().trim().min(1, "Add the product summary."),
   defaultCurrency: z.enum(supportedCurrencies as [string, ...string[]]).default(defaultCurrency),
   prices: z

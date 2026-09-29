@@ -47,7 +47,7 @@ export const defaultPlans: Plan[] = [
     prices: { AUD: 200 },
     stripePriceIds: {},
     checkoutPriceEnvKey: "STRIPE_PRICE_TIER_ONE",
-    studentRange: "1-15 students",
+    studentRange: "1-49 kids",
     audience:
       "A great fit for smaller ministries with full curriculum access and unlimited invited accounts.",
     summaryHtml: defaultSummaryHtml(
@@ -63,7 +63,7 @@ export const defaultPlans: Plan[] = [
     prices: { AUD: 300 },
     stripePriceIds: {},
     checkoutPriceEnvKey: "STRIPE_PRICE_TIER_TWO",
-    studentRange: "16-50 students",
+    studentRange: "50-99 kids",
     audience:
       "Made for growing ministries with full curriculum access and unlimited invited accounts.",
     summaryHtml: defaultSummaryHtml(
@@ -79,7 +79,7 @@ export const defaultPlans: Plan[] = [
     prices: { AUD: 500 },
     stripePriceIds: {},
     checkoutPriceEnvKey: "STRIPE_PRICE_TIER_THREE",
-    studentRange: "51+ students",
+    studentRange: "100+ kids",
     audience:
       "For larger ministries with full curriculum access and unlimited invited accounts.",
     summaryHtml: defaultSummaryHtml(

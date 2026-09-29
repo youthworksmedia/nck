@@ -493,7 +493,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               <div className="section-head">
                 <div>
                   <h1>Products</h1>
-                  <p>Manage plan titles, student ranges, summaries, and AUD prices.</p>
+                  <p>Manage plan titles, kids ministry size ranges, summaries, and AUD prices.</p>
                 </div>
               </div>
               <AdminProductList products={products} />

@@ -136,7 +136,7 @@ export function AdminProductList({ products }: { products: Plan[] }) {
                 <input
                   value={draft.productType}
                   onChange={(event) => updateDraft(product.id, { productType: event.target.value })}
-                  placeholder="How many students"
+                  placeholder="How many kids"
                   required
                 />
               </label>

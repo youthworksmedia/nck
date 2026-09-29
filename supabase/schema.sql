@@ -338,7 +338,7 @@ values
   (
     'essential',
     'Small',
-    '1-15 students',
+    '1-49 kids',
     '<p>A great fit for smaller ministries with full curriculum access and unlimited invited accounts.</p><ul><li>Full library of downloadable resources</li><li>Unlimited invited account access</li><li>Invoices and order history for account holders</li><li>Shared curriculum access tied to one active annual subscription</li><li>Secure login and account management</li></ul>',
     '{"AUD": 200}'::jsonb,
     'AUD',
@@ -347,7 +347,7 @@ values
   (
     'growth',
     'Medium',
-    '16-50 students',
+    '50-99 kids',
     '<p>Made for growing ministries with full curriculum access and unlimited invited accounts.</p><ul><li>Full library of downloadable resources</li><li>Unlimited invited account access</li><li>Invoices and order history for account holders</li><li>Shared curriculum access tied to one active annual subscription</li><li>Secure login and account management</li></ul>',
     '{"AUD": 300}'::jsonb,
     'AUD',
@@ -356,7 +356,7 @@ values
   (
     'scale',
     'Large',
-    '51+ students',
+    '100+ kids',
     '<p>For larger ministries with full curriculum access and unlimited invited accounts.</p><ul><li>Full library of downloadable resources</li><li>Unlimited invited account access</li><li>Invoices and order history for account holders</li><li>Shared curriculum access tied to one active annual subscription</li><li>Secure login and account management</li></ul>',
     '{"AUD": 500}'::jsonb,
     'AUD',
